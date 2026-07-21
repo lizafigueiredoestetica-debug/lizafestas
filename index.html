@@ -2154,7 +2154,7 @@ async function init() {
       {id: uid(), nome: 'Barriga'}
     ];
     // Salvar só localmente — nunca enviar para Sheets durante inicialização
-    try { localStorage.setItem('lizafig_db', JSON.stringify(db)); } catch(e) {}
+    try { localStorage.setItem('lizafestas_db', JSON.stringify(db)); } catch(e) {}
   }
   setToday();
   updateHeaderDate();
@@ -2164,7 +2164,7 @@ async function init() {
   // Restaurar última seção visitada
   setTimeout(function() {
     try {
-      var _secSalva = localStorage.getItem('lizafig_secao');
+      var _secSalva = localStorage.getItem('lizafestas_secao');
       if (_secSalva && document.getElementById('sec-' + _secSalva)) {
         showSection(_secSalva);
       }
@@ -2216,7 +2216,7 @@ async function _syncParaNuvem() {
     });
     if (resp.ok) {
       var now = new Date().toLocaleString('pt-BR');
-      localStorage.setItem('lizafig_lastsync', now);
+      localStorage.setItem('lizafestas_lastsync', now);
       _atualizarStatusSync('ok', now);
       addLog('INFO', '☁️ Sincronizado com Supabase — ' + now);
     } else {
@@ -2259,9 +2259,9 @@ async function _carregarDaNuvem() {
     if(!db.despExtra) db.despExtra = [];
     if(!db.temas) db.temas = [];
 
-    localStorage.setItem('lizafig_db', JSON.stringify(db));
+    localStorage.setItem('lizafestas_db', JSON.stringify(db));
     var now = new Date().toLocaleString('pt-BR');
-    localStorage.setItem('lizafig_lastsync', now);
+    localStorage.setItem('lizafestas_lastsync', now);
     _atualizarStatusSync('ok', now);
     addLog('INFO', '☁️ Dados carregados do Supabase — ' +
       db.atendimentos.length + ' atend, ' +
@@ -2308,7 +2308,7 @@ function saveData() {
   // Adicionar timestamp para controle de versão
   db._savedAt = Date.now();
   // Sempre salva local como cache
-  localStorage.setItem('lizafig_db', JSON.stringify(db));
+  localStorage.setItem('lizafestas_db', JSON.stringify(db));
   const now = new Date().toLocaleString('pt-BR');
   localStorage.setItem('lizafig_lastsave', now);
   // Supabase sempre ativo
@@ -2325,7 +2325,7 @@ function saveData() {
 
 async function loadData() {
   // Carregar cache local primeiro (para mostrar rápido)
-  const raw = localStorage.getItem('lizafig_db');
+  const raw = localStorage.getItem('lizafestas_db');
   if(raw) {
     try { db = JSON.parse(raw); } catch(e) {}
   }
@@ -2339,7 +2339,7 @@ async function loadData() {
   // Sempre buscar do Supabase
   var carregouNuvem = await _carregarDaNuvem();
   if (!carregouNuvem) {
-    const ls = localStorage.getItem('lizafig_lastsync') || localStorage.getItem('lizafig_lastsave');
+    const ls = localStorage.getItem('lizafestas_lastsync') || localStorage.getItem('lizafig_lastsave');
     if(ls) document.getElementById('lastSave').textContent = '📴 Offline — cache de ' + ls;
   }
 }
@@ -2379,7 +2379,7 @@ function showSection(id) {
     if (oc.includes("'"+id+"'") || oc.includes('"'+id+'"')) t.classList.add('active');
   });
   // Salvar seção ativa para restaurar ao recarregar
-  try { localStorage.setItem('lizafig_secao', id); } catch(e) {}
+  try { localStorage.setItem('lizafestas_secao', id); } catch(e) {}
   if(id === 'atendimentos') renderServiceChips();
   if(id === 'dashboard') renderDashboard();
   if(id === 'agenda') renderAgenda();
@@ -5741,11 +5741,11 @@ function salvarAssinatura() {
 }
 
 function configurarSenhaAssinatura() {
-  var atual = localStorage.getItem('lizafig_signin_pwd') || '1234';
+  var atual = localStorage.getItem('lizafestas_signin_pwd') || '1234';
   var nova = prompt('Senha atual: ' + atual + '\n\nDigite a nova senha para bloqueio de assinatura:');
   if (nova === null) return;
   if (!nova.trim()) { showToast('Senha não pode ser vazia!'); return; }
-  localStorage.setItem('lizafig_signin_pwd', nova.trim());
+  localStorage.setItem('lizafestas_signin_pwd', nova.trim());
   showToast('🔑 Senha atualizada com sucesso!');
 }
 
@@ -5769,7 +5769,7 @@ function _setAssinBloqueado(bloqueado) {
 
 function desbloquearAssinatura() {
   var senha = prompt('Digite a senha para editar a assinatura:');
-  var senhaSalva = localStorage.getItem('lizafig_signin_pwd') || '1234';
+  var senhaSalva = localStorage.getItem('lizafestas_signin_pwd') || '1234';
   if (senha === senhaSalva) {
     _setAssinBloqueado(false);
     showToast('🔓 Assinatura desbloqueada!');
@@ -5887,19 +5887,19 @@ function salvarNovoCiclo(agId) {
 var _usuarioLogado = null;
 
 function _getUsuarios() {
-  var raw = localStorage.getItem('lizafig_usuarios');
+  var raw = localStorage.getItem('lizafestas_usuarios');
   if (raw) { try { return JSON.parse(raw); } catch(e){} }
   // Usuários padrão
   var padrao = [
     { id: 'u1', nome: 'Liza Figueiredo', usuario: 'liza', senha: '1234', nivel: 'admin' },
     { id: 'u2', nome: 'Operador', usuario: 'operador', senha: '1234', nivel: 'operador' }
   ];
-  localStorage.setItem('lizafig_usuarios', JSON.stringify(padrao));
+  localStorage.setItem('lizafestas_usuarios', JSON.stringify(padrao));
   return padrao;
 }
 
 function _salvarUsuarios(lista) {
-  localStorage.setItem('lizafig_usuarios', JSON.stringify(lista));
+  localStorage.setItem('lizafestas_usuarios', JSON.stringify(lista));
 }
 
 function fazerLogin() {
@@ -5913,7 +5913,7 @@ function fazerLogin() {
     return;
   }
   _usuarioLogado = encontrado;
-  sessionStorage.setItem('lizafig_sessao', JSON.stringify(encontrado));
+  sessionStorage.setItem('lizafestas_sessao', JSON.stringify(encontrado));
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('loginScreen').style.flexDirection = '';
   _aplicarNivelAcesso();
@@ -5924,7 +5924,7 @@ function fazerLogin() {
 
 function fazerLogout() {
   _usuarioLogado = null;
-  sessionStorage.removeItem('lizafig_sessao');
+  sessionStorage.removeItem('lizafestas_sessao');
   mostrarLoginScreen();
 }
 
@@ -6279,14 +6279,14 @@ function toggleSidebar() {
   sb.classList.toggle('mini');
   ac.classList.toggle('mini');
   // Salvar estado
-  localStorage.setItem('lizafig_sidebar_mini', sb.classList.contains('mini') ? '1' : '0');
+  localStorage.setItem('lizafestas_sidebar_mini', sb.classList.contains('mini') ? '1' : '0');
 }
 
 // START
 updateHeaderDate();
 setInterval(updateHeaderDate, 1000);
 // Restaurar estado da sidebar
-if (localStorage.getItem('lizafig_sidebar_mini') === '1') {
+if (localStorage.getItem('lizafestas_sidebar_mini') === '1') {
   var _sb = document.getElementById('appSidebar');
   var _ac = document.querySelector('.app-content');
   if (_sb) _sb.classList.add('mini');
@@ -7259,7 +7259,7 @@ function gerarRelatorioPDF() {
 // ── WHATSAPP AVANÇADO ──────────────────────────────────────────────────────
 
 // URL da anamnese — configurável
-var _urlAnamnese = localStorage.getItem('lizafig_url_anamnese') || 'https://liza-figueiredo.netlify.app';
+var _urlAnamnese = localStorage.getItem('lizafestas_url_anamnese') || 'https://liza-figueiredo.netlify.app';
 
 // 1. Link da anamnese ao criar agendamento
 function waEnviarAnamnese(cliente, tel) {
@@ -7387,7 +7387,7 @@ function novoAgendamentoDeFalta(agId, sessaoIdx) {
 }
 
 // Verificar sessão salva
-var _sessaoSalva = sessionStorage.getItem('lizafig_sessao');
+var _sessaoSalva = sessionStorage.getItem('lizafestas_sessao');
 if (_sessaoSalva) {
   try {
     var _u = JSON.parse(_sessaoSalva);
@@ -7400,11 +7400,11 @@ if (_sessaoSalva) {
       if (hu) hu.textContent = _uAtual.nome; var av=document.getElementById('sidebarAvatarLetter'); if(av) av.textContent=_uAtual.nome.charAt(0).toUpperCase();
       init();
     } else {
-      sessionStorage.removeItem('lizafig_sessao');
+      sessionStorage.removeItem('lizafestas_sessao');
       mostrarLoginScreen();
     }
   } catch(e) {
-    sessionStorage.removeItem('lizafig_sessao');
+    sessionStorage.removeItem('lizafestas_sessao');
     mostrarLoginScreen();
   }
 } else {
