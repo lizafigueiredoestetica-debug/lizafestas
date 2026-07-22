@@ -201,43 +201,70 @@ function fecharStatusModalIrAgenda(agId) {
   }, 300);
 }
 
-// ===================== CHIPS DE FESTA/MATERIAL (form Atendimentos) =====================
+// ===================== CHIPS DE FESTA/MATERIAL (Atendimentos e Agenda) =====================
 function renderServiceChips() {
   var busca = ((document.getElementById('atend-servico-busca')||{value:''}).value||'').toLowerCase();
+  var buscaAg = ((document.getElementById('ag-servico-busca')||{value:''}).value||'').toLowerCase();
   const ativos = db.festas.filter(s=>s.status==='ativo' && (!busca || s.nome.toLowerCase().includes(busca)));
+  const ativosAg = db.festas.filter(s=>s.status==='ativo' && (!buscaAg || s.nome.toLowerCase().includes(buscaAg)));
+
   const scEl = document.getElementById('serviceChips');
   if (scEl) {
-    scEl.innerHTML = ativos.length ?
-      ativos.map(s => `<div class="service-chip ${selectedServicos.includes(s.id)?'selected':''}" data-id="${s.id}">${s.nome}</div>`).join('') :
-      `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">${busca?'Nenhuma festa encontrada':'Cadastre festas primeiro'}</div>`;
+    const lista = document.getElementById('atend-servico-busca') ? ativos : ativosAg;
+    scEl.innerHTML = lista.length ?
+      lista.map(s => `<div class="service-chip ${selectedServicos.includes(s.id)?'selected':''}" data-id="${s.id}">${s.nome}</div>`).join('') :
+      `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">Cadastre festas primeiro</div>`;
     scEl.querySelectorAll('.service-chip').forEach(el => el.addEventListener('click', function(){ toggleServico(this.dataset.id); }));
   }
   const sc2El = document.getElementById('serviceChips2');
   if (sc2El) {
     sc2El.innerHTML = ativos.length ?
       ativos.map(s => `<div class="service-chip ${selectedServicos.includes(s.id)?'selected':''}" data-id="${s.id}">${s.nome}</div>`).join('') :
-      `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">${busca?'Nenhuma festa encontrada':'Cadastre festas primeiro'}</div>`;
+      `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">Cadastre festas primeiro</div>`;
     sc2El.querySelectorAll('.service-chip').forEach(el => el.addEventListener('click', function(){ toggleServico(this.dataset.id); }));
   }
 
   var buscaMat = ((document.getElementById('atend-material-busca')||{value:''}).value||'').toLowerCase();
+  var buscaMatAg = ((document.getElementById('ag-material-busca')||{value:''}).value||'').toLowerCase();
+
   const mcEl = document.getElementById('materialChips');
-  const matsFiltrados = db.materiais.filter(m => !buscaMat || m.nome.toLowerCase().includes(buscaMat));
   if (mcEl) {
+    const matsFiltrados = db.materiais.filter(m => !buscaMat || m.nome.toLowerCase().includes(buscaMat));
     mcEl.innerHTML = matsFiltrados.length ?
-      matsFiltrados.map(m => {
-        const qtdUsada = selectedMateriais[m.id] || 0;
-        return `<div class="material-chip ${qtdUsada>0?'selected':''}" data-id="${m.id}">${m.nome}${qtdUsada>0?' ×'+qtdUsada:''}</div>`;
-      }).join('') :
-      `<div style="font-size:12px;color:var(--text-light);padding:4px">${buscaMat?'Nenhum material encontrado':'Cadastre materiais primeiro'}</div>`;
+      matsFiltrados.map(m => `<div class="material-chip ${selectedMateriais[m.id]?'selected':''}" data-id="${m.id}">${m.nome}${selectedMateriais[m.id]?' ×'+selectedMateriais[m.id]:''}</div>`).join('') :
+      `<div style="font-size:12px;color:var(--text-light);padding:4px">Cadastre materiais primeiro</div>`;
     mcEl.querySelectorAll('.material-chip').forEach(el => el.addEventListener('click', function(){ toggleMaterial(this.dataset.id); }));
   }
 
+  const mcAgEl = document.getElementById('materialChipsAgenda');
+  if (mcAgEl) {
+    const matsFiltradosAg = db.materiais.filter(m => !buscaMatAg || m.nome.toLowerCase().includes(buscaMatAg));
+    mcAgEl.innerHTML = matsFiltradosAg.length ?
+      matsFiltradosAg.map(m => `<div class="material-chip ${selectedMateriais[m.id]?'selected':''}" data-id="${m.id}">${m.nome}${selectedMateriais[m.id]?' ×'+selectedMateriais[m.id]:''}</div>`).join('') :
+      `<div style="font-size:12px;color:var(--text-light);padding:4px">Cadastre materiais primeiro</div>`;
+    mcAgEl.querySelectorAll('.material-chip').forEach(el => el.addEventListener('click', function(){ toggleMaterial(this.dataset.id); }));
+  }
+
   _renderAtendMatQtd();
+  _renderAgMatQtd();
 }
 
 function _renderAtendMatQtd() {
   var wrap = document.getElementById('atend-material-qtd-wrap');
+  if (!wrap) return;
+  var ids = Object.keys(selectedMateriais);
+  if (!ids.length) { wrap.innerHTML=''; return; }
+  wrap.innerHTML = ids.map(id => {
+    var m = db.materiais.find(x=>x.id===id);
+    if (!m) return '';
+    return `<div style="display:flex;align-items:center;gap:6px;background:var(--cream);border-radius:8px;padding:4px 10px;font-size:12px">
+      <span>${m.nome}</span><label style="font-size:11px;color:var(--text-light)">Qtd:</label>
+      <input type="number" min="1" value="${selectedMateriais[id]||1}" style="width:50px;padding:2px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px" onchange="selectedMateriais['${id}']=parseInt(this.value)||1"></div>`;
+  }).join('');
+}
+
+function _renderAgMatQtd() {
+  var wrap = document.getElementById('ag-material-qtd-wrap');
   if (!wrap) return;
   var ids = Object.keys(selectedMateriais);
   if (!ids.length) { wrap.innerHTML=''; return; }
