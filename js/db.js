@@ -1,7 +1,6 @@
 /* =====================================================
    LIZA FESTAS — db.js
    Objeto db em memória + sincronização por tabela
-   (substitui o modelo de blob único "dados")
    ===================================================== */
 
 let db = {
@@ -16,7 +15,6 @@ let db = {
 
 let currentPeriod = 'hoje';
 
-// ===================== HELPERS SUPABASE (REST genérico) =====================
 function _supaHeaders(extra) {
   return Object.assign({
     'Content-Type': 'application/json',
@@ -26,70 +24,60 @@ function _supaHeaders(extra) {
 }
 
 async function _supaSelect(tabela) {
-  var resp = await fetch(SUPA_URL + '/rest/v1/' + tabela + '?select=*', {
-    headers: _supaHeaders()
-  });
+  var resp = await fetch(SUPA_URL + '/rest/v1/' + tabela + '?select=*', { headers: _supaHeaders() });
   if (!resp.ok) throw new Error(tabela + ': HTTP ' + resp.status);
   return await resp.json();
 }
 
+// Carga leve de temas — SEM a coluna fotos (evita baixar imagens ao entrar na aba)
+async function _supaSelectTemasLeve() {
+  var resp = await fetch(SUPA_URL + '/rest/v1/temas?select=id,nome,descricao,festa_ids', { headers: _supaHeaders() });
+  if (!resp.ok) throw new Error('temas: HTTP ' + resp.status);
+  return await resp.json();
+}
+
+// Busca as fotos de UM tema específico, só quando solicitado (botão "Ver Fotos"/"Enviar")
+async function supaBuscarFotosTema(id) {
+  var resp = await fetch(SUPA_URL + '/rest/v1/temas?id=eq.' + encodeURIComponent(id) + '&select=fotos', { headers: _supaHeaders() });
+  if (!resp.ok) throw new Error('fotos tema: HTTP ' + resp.status);
+  var rows = await resp.json();
+  return (rows && rows[0] && rows[0].fotos) || [];
+}
+
 async function _supaInsert(tabela, registro) {
   var resp = await fetch(SUPA_URL + '/rest/v1/' + tabela, {
-    method: 'POST',
-    headers: _supaHeaders({ 'Prefer': 'return=minimal' }),
-    body: JSON.stringify(registro)
+    method: 'POST', headers: _supaHeaders({ 'Prefer': 'return=minimal' }), body: JSON.stringify(registro)
   });
   if (!resp.ok) throw new Error(tabela + ' insert: HTTP ' + resp.status);
 }
-
 async function _supaUpdate(tabela, id, campos) {
   var resp = await fetch(SUPA_URL + '/rest/v1/' + tabela + '?id=eq.' + encodeURIComponent(id), {
-    method: 'PATCH',
-    headers: _supaHeaders({ 'Prefer': 'return=minimal' }),
-    body: JSON.stringify(campos)
+    method: 'PATCH', headers: _supaHeaders({ 'Prefer': 'return=minimal' }), body: JSON.stringify(campos)
   });
   if (!resp.ok) throw new Error(tabela + ' update: HTTP ' + resp.status);
 }
-
 async function _supaDelete(tabela, id) {
   var resp = await fetch(SUPA_URL + '/rest/v1/' + tabela + '?id=eq.' + encodeURIComponent(id), {
-    method: 'DELETE',
-    headers: _supaHeaders({ 'Prefer': 'return=minimal' })
+    method: 'DELETE', headers: _supaHeaders({ 'Prefer': 'return=minimal' })
   });
   if (!resp.ok) throw new Error(tabela + ' delete: HTTP ' + resp.status);
 }
 
-// ===================== MAPEAMENTO db.<chave> <-> tabela Supabase =====================
 var _TABELAS = {
-  festas: 'festas',
-  materiais: 'materiais',
-  atendimentos: 'atendimentos',
-  despAdm: 'desp_adm',
-  despExtra: 'desp_extra',
-  agenda: 'agenda'
+  festas: 'festas', materiais: 'materiais', atendimentos: 'atendimentos',
+  despAdm: 'desp_adm', despExtra: 'desp_extra', agenda: 'agenda', temas: 'temas'
 };
 
-// ===================== CARGA INICIAL (uma leitura por tabela) =====================
 async function loadData() {
   var raw = localStorage.getItem('lizafestas_db');
   if (raw) { try { db = JSON.parse(raw); } catch(e) {} }
-  if (!db.festas) db.festas = [];
-  if (!db.materiais) db.materiais = [];
-  if (!db.atendimentos) db.atendimentos = [];
-  if (!db.despAdm) db.despAdm = [];
-  if (!db.despExtra) db.despExtra = [];
-  if (!db.agenda) db.agenda = [];
-  if (!db.temas) db.temas = [];
+  ['festas','materiais','atendimentos','despAdm','despExtra','agenda','temas'].forEach(k => { if (!db[k]) db[k] = []; });
 
   try {
     _atualizarStatusSync('carregando');
-    const [festas, materiais, atendimentos, despAdm, despExtra, agenda] = await Promise.all([
-      _supaSelect('festas'),
-      _supaSelect('materiais'),
-      _supaSelect('atendimentos'),
-      _supaSelect('desp_adm'),
-      _supaSelect('desp_extra'),
-      _supaSelect('agenda')
+    const [festas, materiais, atendimentos, despAdm, despExtra, agenda, temas] = await Promise.all([
+      _supaSelect('festas'), _supaSelect('materiais'), _supaSelect('atendimentos'),
+      _supaSelect('desp_adm'), _supaSelect('desp_extra'), _supaSelect('agenda'), _supaSelectTemasLeve()
     ]);
 
     db.festas = festas.map(_fromRowFesta);
@@ -98,12 +86,13 @@ async function loadData() {
     db.despAdm = despAdm.map(_fromRowDespAdm);
     db.despExtra = despExtra.map(_fromRowDespExtra);
     db.agenda = agenda.map(_fromRowAgenda);
+    db.temas = temas.map(_fromRowTema);
 
     localStorage.setItem('lizafestas_db', JSON.stringify(db));
     var now = new Date().toLocaleString('pt-BR');
     localStorage.setItem('lizafestas_lastsync', now);
     _atualizarStatusSync('ok', now);
-    addLog('INFO', '☁️ Dados carregados de todas as tabelas — ' + db.atendimentos.length + ' atend, ' + db.agenda.length + ' agend');
+    addLog('INFO', '☁️ Dados carregados de todas as tabelas — ' + db.atendimentos.length + ' atend, ' + db.agenda.length + ' agend, ' + db.temas.length + ' temas');
   } catch(e) {
     addLog('WARN', '⚠️ Erro ao carregar do Supabase: ' + e.message);
     _atualizarStatusSync('offline');
@@ -113,7 +102,6 @@ async function loadData() {
   }
 }
 
-// ===================== CONVERSÃO linha-do-banco <-> objeto-JS =====================
 function _fromRowFesta(r) { return { id: r.id, nome: r.nome, duracao: r.duracao, preco: r.preco, status: r.status }; }
 function _toRowFesta(f) { return { id: f.id, nome: f.nome, duracao: f.duracao ? parseInt(f.duracao) : null, preco: f.preco, status: f.status }; }
 
@@ -129,10 +117,15 @@ function _toRowDespAdm(d) { return { id: d.id, descricao: d.desc, categoria: d.c
 function _fromRowDespExtra(r) { return { id: r.id, desc: r.descricao, valor: r.valor, data: r.data }; }
 function _toRowDespExtra(d) { return { id: d.id, descricao: d.desc, valor: d.valor, data: d.data }; }
 
-function _fromRowAgenda(r) { return { id: r.id, cliente: r.cliente, telefone: r.telefone, servicoIds: r.festa_ids||[], sessoes: r.sessoes||[], dataRetirada: r.data_retirada, horaRetirada: r.hora_retirada, sinal: r.sinal, statusCor: r.status_cor, obs: r.obs }; }
-function _toRowAgenda(a) { return { id: a.id, cliente: a.cliente, telefone: a.telefone, festa_ids: a.servicoIds||[], sessoes: a.sessoes||[], data_retirada: a.dataRetirada||null, hora_retirada: a.horaRetirada||null, sinal: a.sinal||0, status_cor: a.statusCor||null, obs: a.obs }; }
+function _fromRowAgenda(r) { return { id: r.id, cliente: r.cliente, telefone: r.telefone, servicoIds: r.festa_ids||[], temaId: r.tema_id||null, sessoes: r.sessoes||[], dataRetirada: r.data_retirada, horaRetirada: r.hora_retirada, sinal: r.sinal, statusCor: r.status_cor, obs: r.obs }; }
+function _toRowAgenda(a) { return { id: a.id, cliente: a.cliente, telefone: a.telefone, festa_ids: a.servicoIds||[], tema_id: a.temaId||null, sessoes: a.sessoes||[], data_retirada: a.dataRetirada||null, hora_retirada: a.horaRetirada||null, sinal: a.sinal||0, status_cor: a.statusCor||null, obs: a.obs }; }
 
-// ===================== SALVAR (grava local + agenda sync no Supabase) =====================
+// fotos: null = ainda não carregado do Supabase; [] = carregado e vazio; [...] = carregado com itens
+function _fromRowTema(r) { return { id: r.id, nome: r.nome, descricao: r.descricao, festaIds: r.festa_ids||[], fotos: (r.fotos !== undefined ? r.fotos : null) }; }
+function _toRowTema(t) { return { id: t.id, nome: t.nome, descricao: t.descricao, festa_ids: t.festaIds||[], fotos: t.fotos||[] }; }
+
+var _TO_ROW = { festas:_toRowFesta, materiais:_toRowMaterial, atendimentos:_toRowAtendimento, despAdm:_toRowDespAdm, despExtra:_toRowDespExtra, agenda:_toRowAgenda, temas:_toRowTema };
+
 function saveData() {
   localStorage.setItem('lizafestas_db', JSON.stringify(db));
   var now = new Date().toLocaleString('pt-BR');
@@ -140,12 +133,10 @@ function saveData() {
   addLog('INFO', '💾 Dados salvos localmente — ' + now);
 }
 
-// Chamadas específicas por módulo — usadas pelos arquivos festas.js, materiais.js, etc.
 async function dbInserir(colecao, obj) {
   var tabela = _TABELAS[colecao];
-  var toRow = { festas:_toRowFesta, materiais:_toRowMaterial, atendimentos:_toRowAtendimento, despAdm:_toRowDespAdm, despExtra:_toRowDespExtra, agenda:_toRowAgenda }[colecao];
   try {
-    await _supaInsert(tabela, toRow(obj));
+    await _supaInsert(tabela, _TO_ROW[colecao](obj));
     _atualizarStatusSync('ok', new Date().toLocaleString('pt-BR'));
   } catch(e) {
     addLog('WARN', '⚠️ Falha ao gravar em ' + tabela + ': ' + e.message);
@@ -155,8 +146,7 @@ async function dbInserir(colecao, obj) {
 
 async function dbAtualizar(colecao, obj) {
   var tabela = _TABELAS[colecao];
-  var toRow = { festas:_toRowFesta, materiais:_toRowMaterial, atendimentos:_toRowAtendimento, despAdm:_toRowDespAdm, despExtra:_toRowDespExtra, agenda:_toRowAgenda }[colecao];
-  var row = toRow(obj);
+  var row = _TO_ROW[colecao](obj);
   var id = row.id; delete row.id;
   try {
     await _supaUpdate(tabela, id, row);
@@ -187,7 +177,6 @@ function _atualizarStatusSync(status, hora) {
   else if (status === 'offline') el.textContent = '📴 Offline — usando cache';
 }
 
-// ===================== BACKUP/EXPORT LOCAL (inalterado) =====================
 function exportData() {
   var blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
   var a = document.createElement('a');
@@ -196,23 +185,15 @@ function exportData() {
   a.click();
   showToast('Backup exportado com sucesso!');
 }
+function importData(e) { showToast('Use o Supabase (Table Editor) para restauração no modelo por tabelas.'); }
+function limparTodosDados() { showToast('Use o Supabase (Table Editor) para limpeza em massa.'); }
 
-function importData(e) {
-  showToast('Restauração de backup completo desativada no modelo por tabelas — use o Supabase diretamente ou peça ajuda para reimportar.');
-}
-
-function limparTodosDados() {
-  showToast('Use o Supabase (Table Editor) para limpeza em massa no modelo por tabelas.');
-}
-
-// ===================== PERIOD FILTER (inalterado) =====================
 function setPeriod(p, btn) {
   currentPeriod = p;
   document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
   if (btn) btn.classList.add('active');
   renderDashboard();
 }
-
 function filterByPeriod(items, dateField) {
   var now = new Date();
   var today = now.toISOString().split('T')[0];
@@ -220,10 +201,7 @@ function filterByPeriod(items, dateField) {
     var d = item[dateField];
     if (!d) return true;
     if (currentPeriod === 'hoje') return d === today;
-    if (currentPeriod === 'semana') {
-      var w = new Date(now); w.setDate(w.getDate()-7);
-      return d >= w.toISOString().split('T')[0];
-    }
+    if (currentPeriod === 'semana') { var w = new Date(now); w.setDate(w.getDate()-7); return d >= w.toISOString().split('T')[0]; }
     if (currentPeriod === 'mes') return d.startsWith(now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0')));
     return true;
   });
