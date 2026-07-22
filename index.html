@@ -109,20 +109,12 @@
       <div class="form-group"><label>Cliente</label><input id="ag-cliente"></div>
       <div class="form-group"><label>Telefone</label><input id="ag-telefone" onkeyup="mascaraTel(this)"></div>
       <div class="form-group"><label>Data</label><input type="date" id="ag-data"></div>
-      <div class="form-group"><label>Hora</label><input type="time" id="ag-hora"></div>
-      <div class="form-group"><label>Recorrência</label>
-        <select id="ag-recorrencia">
-          <option value="">Nenhuma (evento único)</option>
-          <option value="semanal">Semanal</option>
-          <option value="quinzenal">Quinzenal</option>
-          <option value="mensal">Mensal</option>
-          <option value="personalizado">Personalizado</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Repetições</label><input type="number" id="ag-repeticoes" value="1" min="1"></div>
       <div class="form-group"><label>Data de retirada</label><input type="date" id="ag-data-retirada"></div>
       <div class="form-group"><label>Hora retirada</label><input type="time" id="ag-hora-retirada"></div>
       <div class="form-group"><label>Sinal (R$)</label><input type="number" id="ag-sinal" step="0.01"></div>
+      <div class="form-group"><label>Tema</label>
+        <select id="ag-tema"><option value="">Nenhum</option></select>
+      </div>
       <div class="form-group"><label>Status</label>
         <select id="ag-status-cor">
           <option value="reservado">🟢 Reservado</option>
@@ -148,6 +140,31 @@
     <button class="agenda-btn" onclick="setAgendaFiltro('realizados',this)">Realizados</button>
   </div>
   <div id="agendaLista"></div>
+</section>
+
+<!-- ===================== TEMAS ===================== -->
+<section id="sec-temas" class="section">
+  <h2>Temas</h2>
+  <div class="form-card">
+    <div class="form-grid">
+      <div class="form-group"><label>Nome do tema</label><input id="tema-nome"></div>
+      <div class="form-group"><label>Descrição</label><input id="tema-descricao"></div>
+    </div>
+    <div class="form-group">
+      <label>Festas incluídas</label>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="abrirSeletorFestasTema()">🎉 Selecionar festas (<span id="temaFestasCount">0</span>)</button>
+    </div>
+    <div class="form-group">
+      <label>Fotos do tema</label>
+      <input type="file" id="tema-fotos-input" accept="image/*" multiple onchange="onTemaFotosSelecionadas(event)">
+      <div id="temaFotosPreview" class="chips-wrap" style="margin-top:8px"></div>
+    </div>
+    <button class="btn btn-primary" onclick="salvarTema()">+ Cadastrar Tema</button>
+    <button class="btn btn-secondary" onclick="limparFormTema()">Limpar</button>
+  </div>
+
+  <input id="filtTemaNome" placeholder="Buscar tema..." onkeyup="renderTemas()">
+  <div id="temasLista" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem"></div>
 </section>
 
 <!-- ===================== ATENDIMENTOS ===================== -->
