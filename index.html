@@ -127,9 +127,23 @@
     </div>
     <div class="form-group"><label>Festas</label><input id="ag-servico-busca" placeholder="Buscar festa..." onkeyup="renderServiceChips()"></div>
     <div id="serviceChips" class="chips-wrap"></div>
+    <div class="form-group"><label>Materiais</label><input id="ag-material-busca" placeholder="Buscar material..." onkeyup="renderServiceChips()"></div>
+    <div id="materialChipsAgenda" class="chips-wrap"></div>
+    <div id="ag-material-qtd-wrap"></div>
     <div class="form-group"><label>Observações</label><textarea id="ag-obs"></textarea></div>
     <button class="btn btn-primary" onclick="salvarAgendamento()">+ Agendar</button>
     <button class="btn btn-secondary" onclick="limparFormAgenda()">Limpar</button>
+  </div>
+
+  <div class="panel" style="margin-bottom:1.25rem">
+    <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center">
+      <span id="agCalendarioTitulo">Calendário</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="mudarMesCalendario(-1)">‹</button>
+        <button class="btn btn-secondary btn-sm" onclick="mudarMesCalendario(1)">›</button>
+      </div>
+    </div>
+    <div id="agCalendarioGrid" style="padding:1rem"></div>
   </div>
 
   <div class="agenda-filtros">
