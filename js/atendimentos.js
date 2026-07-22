@@ -25,11 +25,15 @@ async function registrarAtendimento() {
   db.atendimentos.push(novo);
 
   const matsAtualizados = [];
-  Object.entries(selectedMateriais).forEach(([matId, qtd]) => {
-    const m = db.materiais.find(x => x.id === matId);
-    if (m) { m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd)); matsAtualizados.push(m); }
-  });
-
+  if (!_agendaPendenteOrigem) {
+    // Só desconta agora se o atendimento NÃO veio de um agendamento
+    // (se veio, o estoque já foi reservado na hora de criar o agendamento)
+    Object.entries(selectedMateriais).forEach(([matId, qtd]) => {
+      const m = db.materiais.find(x => x.id === matId);
+      if (m) { m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd)); matsAtualizados.push(m); }
+    });
+   }
+  
   saveData(); renderAll(); limparFormAtendimento();
 
   await dbInserir('atendimentos', novo);
