@@ -1,16 +1,18 @@
 /* =====================================================
    LIZA FESTAS — financeiro.js
-   Despesas administrativas e despesas extras
+   Despesas administrativas e extras — tabelas
+   desp_adm e desp_extra
    ===================================================== */
 
-// ===================== DESPESAS ADMINISTRATIVAS =====================
-function salvarDespAdm() {
+async function salvarDespAdm() {
   const desc = document.getElementById('dadm-desc').value.trim();
   const valor = document.getElementById('dadm-valor').value;
   const data = document.getElementById('dadm-data').value;
   if (!desc||!valor||!data) { showToast('Preencha todos os campos!'); return; }
-  db.despAdm.push({ id:uid(), desc, valor:parseFloat(valor), data, categoria:document.getElementById('dadm-categoria').value });
+  const nova = { id:uid(), desc, valor:parseFloat(valor), data, categoria:document.getElementById('dadm-categoria').value };
+  db.despAdm.push(nova);
   saveData(); renderAll(); limparFormDespAdm();
+  await dbInserir('despAdm', nova);
   showToast('Despesa administrativa registrada!');
 }
 function limparFormDespAdm() {
@@ -33,14 +35,15 @@ function renderDespAdm() {
     </tr>`).join('');
 }
 
-// ===================== DESPESAS EXTRAS =====================
-function salvarDespExtra() {
+async function salvarDespExtra() {
   const desc = document.getElementById('dext-desc').value.trim();
   const valor = document.getElementById('dext-valor').value;
   const data = document.getElementById('dext-data').value;
   if (!desc||!valor||!data) { showToast('Preencha todos os campos!'); return; }
-  db.despExtra.push({ id:uid(), desc, valor:parseFloat(valor), data });
+  const nova = { id:uid(), desc, valor:parseFloat(valor), data };
+  db.despExtra.push(nova);
   saveData(); renderAll(); limparFormDespExtra();
+  await dbInserir('despExtra', nova);
   showToast('Despesa extra registrada!');
 }
 function limparFormDespExtra() {
