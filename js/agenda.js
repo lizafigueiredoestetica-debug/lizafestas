@@ -153,7 +153,7 @@ function realizarSessao(agId, idx) {
   document.getElementById('atend-valor').value = saldo.toFixed(2);
   document.getElementById('atend-obs').value = `Vindo da agenda. Total da festa: ${fmtMoney(totalFestas)} · Sinal já pago: ${fmtMoney(sinal)}.`;
 
-  _agendaPendenteOrigem = { agId, idx };
+  _agendaPendenteOrigem = { agId, idx, statusCor: ag.statusCor };
 
   showSection('atendimentos');
   renderServiceChips();
