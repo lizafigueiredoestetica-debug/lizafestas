@@ -237,6 +237,7 @@ function excluirUsuario(id) {
         _usuarioLogado = _uAtual;
         document.addEventListener('DOMContentLoaded', function() {
           _aplicarNivelAcesso();
+          document.getElementById('loginScreen').style.display = 'none';
           var hu = document.getElementById('sidebarUserName');
           if (hu) hu.textContent = _uAtual.nome;
           var av = document.getElementById('sidebarAvatarLetter');
