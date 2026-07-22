@@ -57,7 +57,6 @@ function toggleLog() {
   var p = document.getElementById('log-panel');
   if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
 }
-// Intercept global errors
 window.onerror = function(msg, src, line) { addLog('ERROR', msg + ' (linha ' + line + ')'); return false; };
 window.onunhandledrejection = function(e) { addLog('ERROR', 'Promise: ' + (e.reason || e)); };
 (function() {
@@ -84,26 +83,11 @@ function toggleDetail(id) {
   if (!isOpen) { detail.classList.add('open'); if (icon) icon.classList.add('open'); }
 }
 
-function _buildPagHtml(pag, totalPags, total, porPag, varName, renderFn) {
-  if (totalPags <= 1) return '';
-  var inicio = (pag-1)*porPag+1;
-  var fim = Math.min(pag*porPag, total);
-  var html = '<div style="display:flex;align-items:center;gap:0.4rem;padding:0.75rem 0;flex-wrap:wrap">';
-  html += '<button onclick="'+varName+'=Math.max(1,'+varName+'-1);'+renderFn+'" '+(pag===1?'disabled':'')+' class="btn btn-secondary btn-sm">‹ Anterior</button>';
-  for (var p=1; p<=totalPags; p++) {
-    html += '<button onclick="'+varName+'='+p+';'+renderFn+'" style="padding:4px 10px;border:1px solid '+(p===pag?'#D4A0A8':'var(--border)')+';border-radius:6px;background:'+(p===pag?'#D4A0A8':'white')+';color:'+(p===pag?'white':'inherit')+';cursor:pointer;font-size:12px">'+p+'</button>';
-  }
-  html += '<button onclick="'+varName+'=Math.min('+totalPags+','+varName+'+1);'+renderFn+'" '+(pag===totalPags?'disabled':'')+' class="btn btn-secondary btn-sm">Próximo ›</button>';
-  html += '<span style="font-size:11px;color:var(--text-light);margin-left:4px">'+inicio+'-'+fim+' de '+total+'</span>';
-  html += '</div>';
-  return html;
-}
-
 function _agServicos(ag) {
   var todos = {};
   (ag.sessoes||[]).forEach(function(s){
     (s.servicoIds||[]).forEach(function(id){
-      var sv = db.servicos.find(function(x){ return x.id===id; });
+      var sv = db.festas.find(function(x){ return x.id===id; });
       todos[sv ? sv.nome : id] = true;
     });
     if (s.servico && !(s.servicoIds && s.servicoIds.length)) todos[s.servico] = true;
@@ -114,7 +98,7 @@ function _agServicos(ag) {
 
 function setToday() {
   var today = _hoje();
-  ['atend-data','dadm-data','dext-data'].forEach(function(id) {
+  ['atend-data','dadm-data','dext-data','ag-data'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = today;
   });
@@ -163,11 +147,12 @@ function renderAll() {
 function updateBadges() {
   var _set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
   _set('badgeAtend',     db.atendimentos.length);
-  _set('badgeServ',      db.servicos.length);
+  _set('badgeAtend2',    db.atendimentos.length);
+  _set('badgeServ',      db.festas.length);
   _set('badgeMat',       db.materiais.length);
   _set('badgeDespAdm',   db.despAdm.length);
   _set('badgeDespExtra', db.despExtra.length);
-  _set('badgeTemas',     db.temas.length);
+  _set('badgeTemas',     (db.temas||[]).length);
   _set('badgeAgenda',    db.agenda.length);
 }
 
