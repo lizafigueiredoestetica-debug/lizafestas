@@ -1,10 +1,10 @@
 /* =====================================================
    LIZA FESTAS — atendimentos.js
-   Registro de atendimentos (uso de festas/materiais),
-   listagem, edição, exclusão
+   Registro de atendimentos — grava na tabela `atendimentos`
+   e faz baixa de estoque na tabela `materiais`
    ===================================================== */
 
-function registrarAtendimento() {
+async function registrarAtendimento() {
   const cliente = document.getElementById('atend-cliente').value.trim();
   const data = document.getElementById('atend-data').value;
   const valor = document.getElementById('atend-valor').value;
@@ -14,22 +14,27 @@ function registrarAtendimento() {
   if (!cliente || !data || !valor) { showToast('Preencha cliente, data e valor!'); return; }
   if (!selectedServicos.length) { showToast('Selecione ao menos uma festa!'); return; }
 
-  db.atendimentos.push({
-    id: uid(),
-    cliente, data,
+  const novo = {
+    id: uid(), cliente, data,
     servicoIds: [...selectedServicos],
     materiais: {...selectedMateriais},
     valor: parseFloat(valor),
-    pagto, obs
-  });
+    pagto, obs,
+    statusCor: null
+  };
+  db.atendimentos.push(novo);
 
-  // Baixa de estoque dos materiais usados
+  const matsAtualizados = [];
   Object.entries(selectedMateriais).forEach(([matId, qtd]) => {
     const m = db.materiais.find(x => x.id === matId);
-    if (m) m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd));
+    if (m) { m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd)); matsAtualizados.push(m); }
   });
 
   saveData(); renderAll(); limparFormAtendimento();
+
+  await dbInserir('atendimentos', novo);
+  for (const m of matsAtualizados) await dbAtualizar('materiais', m);
+
   showToast('Atendimento registrado!');
 }
 
@@ -57,19 +62,26 @@ function renderAtendimentos() {
   const tbody = document.getElementById('tbodyAtend');
   if (!tbody) return;
   if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">✨</div><p>Nenhum atendimento encontrado</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">✨</div><p>Nenhum atendimento encontrado</p></div></td></tr>`;
     return;
   }
 
   tbody.innerHTML = items.map(a => {
-    const festasNomes = (a.servicoIds||[]).map(id => { const s = db.servicos.find(x=>x.id===id); return s?s.nome:'Festa removida'; }).join(' + ') || '—';
+    const festasNomes = (a.servicoIds||[]).map(id => { const s = db.festas.find(x=>x.id===id); return s?s.nome:'Festa removida'; }).join(' + ') || '—';
     const matNomes = Object.entries(a.materiais||{}).map(([id,q]) => { const m = db.materiais.find(x=>x.id===id); return m ? m.nome+' ×'+q : null; }).filter(Boolean).join(', ') || '—';
+    const corAtend = (typeof _coresStatus !== 'undefined' && _coresStatus[a.statusCor]) || { border:'#DDD' };
     return `
     <tr class="data-row" onclick="toggleDetail('atend-${a.id}')">
       <td><span class="expand-icon" id="icon-atend-${a.id}">▶</span></td>
       <td>${fmtDate(a.data)}</td>
       <td><strong>${a.cliente}</strong></td>
       <td>${festasNomes}</td>
+      <td style="position:relative">
+        <span onclick="event.stopPropagation();toggleStatusMenuAtend('${a.id}')" style="cursor:pointer;display:inline-block;width:14px;height:14px;border-radius:50%;background:${corAtend.border};border:1px solid #ccc"></span>
+        <div id="statusmenu-atend-${a.id}" style="display:none;position:absolute;top:20px;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:50;min-width:150px">
+          ${Object.entries(_coresStatus).map(([key,cor]) => `<div onclick="event.stopPropagation();setStatusAtend('${a.id}','${key}')" style="padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:${cor.border}"></span>${cor.label.split(' ').slice(1).join(' ')}</div>`).join('')}
+        </div>
+      </td>
       <td><span class="badge-pill ${pagtoBadge(a.pagto)}">${pagtoLabel(a.pagto)}</span></td>
       <td>${fmtMoney(a.valor)}</td>
       <td style="display:flex;gap:4px">
@@ -78,7 +90,7 @@ function renderAtendimentos() {
       </td>
     </tr>
     <tr class="detail-row" id="atend-${a.id}">
-      <td colspan="7">
+      <td colspan="8">
         <div id="atend-view-${a.id}">
           <div class="detail-box">
             <div class="detail-field"><label>Cliente</label><span>${a.cliente}</span></div>
@@ -117,7 +129,7 @@ function renderAtendimentos() {
   }).join('');
 }
 
-function salvarEditAtend(id) {
+async function salvarEditAtend(id) {
   const a = db.atendimentos.find(x => x.id === id);
   if (!a) return;
   a.cliente = document.getElementById('eatend-cliente-'+id).value.trim();
@@ -125,10 +137,12 @@ function salvarEditAtend(id) {
   a.valor = parseFloat(document.getElementById('eatend-valor-'+id).value);
   a.pagto = document.getElementById('eatend-pagto-'+id).value;
   a.obs = document.getElementById('eatend-obs-'+id).value;
-  saveData(); renderAll(); showToast('Atendimento atualizado!');
+  saveData(); renderAll();
+  await dbAtualizar('atendimentos', a);
+  showToast('Atendimento atualizado!');
 }
 
-// ===================== HELPERS GENÉRICOS DE EDIÇÃO/EXCLUSÃO =====================
+// ===================== HELPERS GENÉRICOS =====================
 function editItem(prefix, id) {
   const view = document.getElementById(prefix+'-view-'+id);
   const edit = document.getElementById(prefix+'-edit-'+id);
@@ -141,9 +155,10 @@ function cancelEdit(prefix, id) {
   if (edit) edit.style.display = 'none';
   if (view) view.style.display = 'block';
 }
-function excluir(colecao, id) {
+async function excluir(colecao, id) {
   if (!confirm('Tem certeza que deseja excluir este item?')) return;
   db[colecao] = db[colecao].filter(x => x.id !== id);
   saveData(); renderAll();
+  await dbExcluir(colecao, id);
   showToast('Item excluído.');
 }
