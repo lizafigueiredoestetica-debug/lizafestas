@@ -1,6 +1,6 @@
 /* =====================================================
    LIZA FESTAS — dashboard.js
-   renderDashboard, chips de serviço/material, status
+   renderDashboard, chips de festa/material, status
    ===================================================== */
 
 let selectedServicos = [];
@@ -54,7 +54,7 @@ function renderDashboard() {
   const top5 = Object.entries(contagem).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const maxCount = top5.length ? top5[0][1] : 1;
   document.getElementById('top5Panel').innerHTML = top5.length ? top5.map(([sid, cnt], i) => {
-    const s = db.servicos.find(x=>x.id===sid);
+    const s = db.festas.find(x=>x.id===sid);
     return `<div class="top5-item">
       <div class="top5-rank">${i+1}</div>
       <div class="top5-info"><div class="top5-name">${s?s.nome:'Festa removida'}</div><div class="top5-cat">${s?s.categoria||'':''}</div></div>
@@ -83,7 +83,7 @@ function renderDashboard() {
   document.getElementById('ultimosAtend').innerHTML = ultimos.length ? `<table style="width:100%"><thead><tr><th>Data</th><th>Cliente</th><th>Festa</th><th>Valor</th></tr></thead><tbody>` +
     ultimos.map(a => {
       const ids2 = a.servicoIds || (a.servicoId ? [a.servicoId] : []);
-      const sNomes = ids2.map(sid=>{const sv=db.servicos.find(x=>x.id===sid);return sv?sv.nome:'?'}).join(' + ')||'—';
+      const sNomes = ids2.map(sid=>{const sv=db.festas.find(x=>x.id===sid);return sv?sv.nome:'?'}).join(' + ')||'—';
       return `<tr class="data-row" style="cursor:default"><td>${fmtDate(a.data)}</td><td>${a.cliente}</td><td>${sNomes}</td><td>${fmtMoney(a.valor)}</td></tr>`;
     }).join('') + '</tbody></table>'
   : '<div class="empty-state" style="padding:2rem"><div class="empty-icon">🎊</div><p>Nenhuma festa registrada</p></div>';
@@ -111,7 +111,7 @@ function renderDashboard() {
         var _hora = _sessao.hora ? ` <span style="color:var(--text-light);font-size:11px">${_sessao.hora}</span>` : '';
         var _srvIds = _sessao.servicoIds || [];
         var _srvNome = _srvIds.length
-          ? _srvIds.map(id => { const sv=db.servicos.find(x=>x.id===id); return sv?sv.nome:id; }).join(' + ')
+          ? _srvIds.map(id => { const sv=db.festas.find(x=>x.id===id); return sv?sv.nome:id; }).join(' + ')
           : (_sessao.servico || _agServicos(item.ag));
         return `<tr><td><strong>${item.ag.cliente}</strong>${_hora}</td><td>${_srvNome||'—'}</td><td>${_badge}</td><td>${_btn}</td></tr>`;
       }).join('');
@@ -204,23 +204,34 @@ function fecharStatusModalIrAgenda(agId) {
 // ===================== CHIPS DE FESTA/MATERIAL (form Atendimentos) =====================
 function renderServiceChips() {
   var busca = ((document.getElementById('atend-servico-busca')||{value:''}).value||'').toLowerCase();
-  const ativos = db.servicos.filter(s=>s.status==='ativo' && (!busca || s.nome.toLowerCase().includes(busca)));
+  const ativos = db.festas.filter(s=>s.status==='ativo' && (!busca || s.nome.toLowerCase().includes(busca)));
   const scEl = document.getElementById('serviceChips');
-  scEl.innerHTML = ativos.length ?
-    ativos.map(s => `<div class="service-chip ${selectedServicos.includes(s.id)?'selected':''}" data-id="${s.id}">${s.nome}</div>`).join('') :
-    `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">${busca?'Nenhuma festa encontrada':'Cadastre festas primeiro'}</div>`;
-  scEl.querySelectorAll('.service-chip').forEach(el => el.addEventListener('click', function(){ toggleServico(this.dataset.id); }));
+  if (scEl) {
+    scEl.innerHTML = ativos.length ?
+      ativos.map(s => `<div class="service-chip ${selectedServicos.includes(s.id)?'selected':''}" data-id="${s.id}">${s.nome}</div>`).join('') :
+      `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">${busca?'Nenhuma festa encontrada':'Cadastre festas primeiro'}</div>`;
+    scEl.querySelectorAll('.service-chip').forEach(el => el.addEventListener('click', function(){ toggleServico(this.dataset.id); }));
+  }
+  const sc2El = document.getElementById('serviceChips2');
+  if (sc2El) {
+    sc2El.innerHTML = ativos.length ?
+      ativos.map(s => `<div class="service-chip ${selectedServicos.includes(s.id)?'selected':''}" data-id="${s.id}">${s.nome}</div>`).join('') :
+      `<div style="font-size:12px;color:var(--text-light);padding:0.5rem">${busca?'Nenhuma festa encontrada':'Cadastre festas primeiro'}</div>`;
+    sc2El.querySelectorAll('.service-chip').forEach(el => el.addEventListener('click', function(){ toggleServico(this.dataset.id); }));
+  }
 
   var buscaMat = ((document.getElementById('atend-material-busca')||{value:''}).value||'').toLowerCase();
   const mcEl = document.getElementById('materialChips');
   const matsFiltrados = db.materiais.filter(m => !buscaMat || m.nome.toLowerCase().includes(buscaMat));
-  mcEl.innerHTML = matsFiltrados.length ?
-    matsFiltrados.map(m => {
-      const qtdUsada = selectedMateriais[m.id] || 0;
-      return `<div class="material-chip ${qtdUsada>0?'selected':''}" data-id="${m.id}">${m.nome}${qtdUsada>0?' ×'+qtdUsada:''}</div>`;
-    }).join('') :
-    `<div style="font-size:12px;color:var(--text-light);padding:4px">${buscaMat?'Nenhum material encontrado':'Cadastre materiais primeiro'}</div>`;
-  mcEl.querySelectorAll('.material-chip').forEach(el => el.addEventListener('click', function(){ toggleMaterial(this.dataset.id); }));
+  if (mcEl) {
+    mcEl.innerHTML = matsFiltrados.length ?
+      matsFiltrados.map(m => {
+        const qtdUsada = selectedMateriais[m.id] || 0;
+        return `<div class="material-chip ${qtdUsada>0?'selected':''}" data-id="${m.id}">${m.nome}${qtdUsada>0?' ×'+qtdUsada:''}</div>`;
+      }).join('') :
+      `<div style="font-size:12px;color:var(--text-light);padding:4px">${buscaMat?'Nenhum material encontrado':'Cadastre materiais primeiro'}</div>`;
+    mcEl.querySelectorAll('.material-chip').forEach(el => el.addEventListener('click', function(){ toggleMaterial(this.dataset.id); }));
+  }
 
   _renderAtendMatQtd();
 }
@@ -251,10 +262,11 @@ function toggleServico(id) {
   if (selectedServicos.includes(id)) selectedServicos = selectedServicos.filter(x=>x!==id);
   else selectedServicos.push(id);
   const total = selectedServicos.reduce((sum, sid) => {
-    const s = db.servicos.find(x=>x.id===sid);
+    const s = db.festas.find(x=>x.id===sid);
     return sum + (s ? parseFloat(s.preco) : 0);
   }, 0);
-  if (total > 0) document.getElementById('atend-valor').value = total.toFixed(2);
+  var vEl = document.getElementById('atend-valor');
+  if (total > 0 && vEl) vEl.value = total.toFixed(2);
   renderServiceChips();
 }
 
@@ -264,11 +276,12 @@ function toggleStatusMenuAtend(id) {
   if (menu) menu.style.display = menu.style.display==='none' ? 'block' : 'none';
 }
 
-function setStatusAtend(id, statusCor) {
+async function setStatusAtend(id, statusCor) {
   var a = db.atendimentos.find(x=>x.id===id);
   if (!a) return;
   a.statusCor = statusCor;
   saveData(); renderAtendimentos();
+  await dbAtualizar('atendimentos', a);
   var menu = document.getElementById('statusmenu-atend-'+id);
   if (menu) menu.style.display='none';
 }
