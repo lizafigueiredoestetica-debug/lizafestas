@@ -16,6 +16,7 @@ async function salvarAgendamento() {
   const dataRetirada = document.getElementById('ag-data-retirada').value;
   const horaRetirada = document.getElementById('ag-hora-retirada').value;
   const sinal = document.getElementById('ag-sinal').value;
+  const statusCor = document.getElementById('ag-status-cor').value || 'reservado';
 
   if (!cliente || !data) { showToast('Preencha cliente e data!'); return; }
   if (!selectedServicos.length) { showToast('Selecione ao menos uma festa!'); return; }
@@ -32,7 +33,7 @@ async function salvarAgendamento() {
     servicoIds: [...selectedServicos],
     dataRetirada, horaRetirada,
     sinal: parseFloat(sinal || 0),
-    statusCor: 'reservado',
+    statusCor,
     obs: document.getElementById('ag-obs').value
   };
   db.agenda.push(novo);
@@ -80,6 +81,7 @@ function limparFormAgenda() {
   });
   var rec = document.getElementById('ag-recorrencia'); if (rec) rec.value = '';
   var rep = document.getElementById('ag-repeticoes'); if (rep) rep.value = '1';
+  var stEl = document.getElementById('ag-status-cor'); if (stEl) stEl.value = 'reservado';
   selectedServicos = [];
   setToday();
   renderServiceChips();
