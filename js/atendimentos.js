@@ -20,7 +20,7 @@ async function registrarAtendimento() {
     materiais: {...selectedMateriais},
     valor: parseFloat(valor),
     pagto, obs,
-    statusCor: null
+    statusCor: _agendaPendenteOrigem ? _agendaPendenteOrigem.statusCor : null
   };
   db.atendimentos.push(novo);
 
