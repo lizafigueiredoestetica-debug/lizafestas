@@ -4,9 +4,6 @@
 
 let agendaFiltroAtual = 'tudo';
 let agBuscaClienteAtual = '';
-let _agCalMes = new Date().getMonth();
-let _agCalAno = new Date().getFullYear();
-let _agCalDiaSelecionado = null;
 let _agendaPendenteOrigem = null; // {agId, idx} — guarda de onde veio até a Liza confirmar em Atendimentos
 
 async function salvarAgendamento() {
@@ -64,84 +61,21 @@ function _populateTemaSelect() {
 
 function setAgendaFiltro(filtro, btn) {
   agendaFiltroAtual = filtro;
-  _agCalDiaSelecionado = null;
   document.querySelectorAll('.agenda-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  renderAgenda();
-}
-
-// ===================== CALENDÁRIO MENSAL =====================
-function mudarMesCalendario(delta) {
-  _agCalMes += delta;
-  if (_agCalMes > 11) { _agCalMes = 0; _agCalAno++; }
-  if (_agCalMes < 0) { _agCalMes = 11; _agCalAno--; }
-  renderAgendaCalendario();
-}
-
-function _statusDoDia(dataIso) {
-  const prioridade = ['alugado','personalizado','credito','reservado','devolveu'];
-  const ags = db.agenda.filter(ag => ag.sessoes.some(s => s.data === dataIso));
-  if (!ags.length) return null;
-  for (const p of prioridade) { if (ags.some(a => a.statusCor === p)) return p; }
-  return ags[0].statusCor;
-}
-
-function renderAgendaCalendario() {
-  const nomesMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const titulo = document.getElementById('agCalendarioTitulo');
-  if (titulo) titulo.textContent = nomesMes[_agCalMes] + ' de ' + _agCalAno;
-
-  const primeiroDia = new Date(_agCalAno, _agCalMes, 1);
-  const ultimoDia = new Date(_agCalAno, _agCalMes + 1, 0);
-  const diaSemanaInicio = primeiroDia.getDay();
-  const totalDias = ultimoDia.getDate();
-  const hoje = _hoje();
-
-  let celulas = '';
-  for (let i = 0; i < diaSemanaInicio; i++) celulas += '<div></div>';
-  for (let d = 1; d <= totalDias; d++) {
-    const iso = _agCalAno + '-' + String(_agCalMes+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    const status = _statusDoDia(iso);
-    const cor = status && _coresStatus[status] ? _coresStatus[status] : null;
-    const isHoje = iso === hoje;
-    const isSelecionado = iso === _agCalDiaSelecionado;
-    celulas += `<div onclick="selecionarDiaCalendario('${iso}')" style="
-      aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;font-size:13px;
-      background:${cor ? cor.bg : '#fff'};
-      border:2px solid ${isSelecionado ? 'var(--rose)' : (cor ? cor.border : 'var(--border)')};
-      font-weight:${isHoje ? '700':'400'};
-      color:${cor ? cor.border : 'var(--text)'}">${d}</div>`;
-  }
-
-  const grid = document.getElementById('agCalendarioGrid');
-  if (!grid) return;
-  grid.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;font-size:11px;color:var(--text-light);text-align:center">
-      <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">${celulas}</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--text-light)">
-      ${Object.entries(_coresStatus).map(([k,c]) => `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:${c.border};display:inline-block"></span>${c.label.split(' ').slice(1).join(' ')}</span>`).join('')}
-    </div>`;
-}
-
-function selecionarDiaCalendario(iso) {
-  _agCalDiaSelecionado = (_agCalDiaSelecionado === iso) ? null : iso;
-  renderAgendaCalendario();
   renderAgenda();
 }
 
 // ===================== LISTAGEM / FILTRO =====================
 function renderAgenda() {
   _populateTemaSelect();
-  renderAgendaCalendario();
+  renderCalendario();
   agBuscaClienteAtual = (document.getElementById('agBuscaCliente')?.value || '').toLowerCase();
   const hoje = _hoje();
   let items = [...db.agenda];
 
   if (agBuscaClienteAtual) items = items.filter(ag => ag.cliente.toLowerCase().includes(agBuscaClienteAtual));
-  if (_agCalDiaSelecionado) items = items.filter(ag => ag.sessoes.some(s => s.data === _agCalDiaSelecionado));
-  else if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
+  if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
   else if (agendaFiltroAtual === 'pendentes') items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
   else if (agendaFiltroAtual === 'realizados') items = items.filter(ag => ag.sessoes.every(s => s.status === 'realizado'));
 
