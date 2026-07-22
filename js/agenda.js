@@ -4,7 +4,8 @@
 
 let agendaFiltroAtual = 'tudo';
 let agBuscaClienteAtual = '';
-let _agendaPendenteOrigem = null; // {agId, idx} — guarda de onde veio até a Liza confirmar em Atendimentos
+let _agendaPendenteOrigem = null; // {agId, idx, statusCor} — guarda de onde veio até a Liza confirmar em Atendimentos
+let _agendaEditandoId = null;     // id do agendamento sendo editado (null = criando novo)
 
 async function salvarAgendamento() {
   const cliente = document.getElementById('ag-cliente').value.trim();
@@ -19,8 +20,32 @@ async function salvarAgendamento() {
   if (!cliente || !data) { showToast('Preencha cliente e data!'); return; }
   if (!selectedServicos.length) { showToast('Selecione ao menos uma festa!'); return; }
 
-  const sessoes = [{ data, hora: '', servicoIds: [...selectedServicos], status: 'pendente' }];
+  // ===== MODO EDIÇÃO =====
+  if (_agendaEditandoId) {
+    const ag = db.agenda.find(x => x.id === _agendaEditandoId);
+    if (ag) {
+      ag.cliente = cliente;
+      ag.telefone = telefone;
+      ag.sessoes = [{ data, hora: '', servicoIds: [...selectedServicos], status: ag.sessoes[0]?.status || 'pendente' }];
+      ag.servicoIds = [...selectedServicos];
+      ag.materiais = {...selectedMateriais};
+      ag.temaId = temaId;
+      ag.dataRetirada = dataRetirada;
+      ag.horaRetirada = horaRetirada;
+      ag.sinal = parseFloat(sinal || 0);
+      ag.statusCor = statusCor;
+      ag.obs = document.getElementById('ag-obs').value;
+      saveData(); renderAll();
+      await dbAtualizar('agenda', ag);
+      showToast('Agendamento atualizado!');
+    }
+    _agendaEditandoId = null;
+    limparFormAgenda();
+    return;
+  }
 
+  // ===== MODO CRIAÇÃO =====
+  const sessoes = [{ data, hora: '', servicoIds: [...selectedServicos], status: 'pendente' }];
   const novo = {
     id: uid(), cliente, telefone,
     sessoes,
@@ -34,30 +59,55 @@ async function salvarAgendamento() {
   };
   db.agenda.push(novo);
 
-// Se houver sinal, registra já como receita recebida (Atendimento + Financeiro)
-if (novo.sinal > 0) {
-  const sinalAtend = {
-    id: uid(),
-    cliente: novo.cliente,
-    data: novo.dataRetirada || data,
-    servicoIds: [...novo.servicoIds],
-    materiais: {},
-    valor: novo.sinal,
-    pagto: 'pix',
-    obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
-    statusCor: novo.statusCor
-  };
-  db.atendimentos.push(sinalAtend);
-  await dbInserir('atendimentos', sinalAtend);
-}
+  // Baixa de estoque já na reserva (materiais ficam "na rua")
+  const matsReservados = [];
+  Object.entries(novo.materiais).forEach(([matId, qtd]) => {
+    const m = db.materiais.find(x => x.id === matId);
+    if (m) { m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd)); matsReservados.push(m); }
+  });
 
-saveData(); renderAll(); limparFormAgenda();
-await dbInserir('agenda', novo);
-showToast('Agendamento criado!');
+  // Se houver sinal, registra já como receita recebida (Atendimento + Financeiro)
+  if (novo.sinal > 0) {
+    const sinalAtend = {
+      id: uid(),
+      cliente: novo.cliente,
+      data: novo.dataRetirada || data,
+      servicoIds: [...novo.servicoIds],
+      materiais: {},
+      valor: novo.sinal,
+      pagto: 'pix',
+      obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
+      statusCor: novo.statusCor
+    };
+    db.atendimentos.push(sinalAtend);
+    await dbInserir('atendimentos', sinalAtend);
+  }
 
   saveData(); renderAll(); limparFormAgenda();
   await dbInserir('agenda', novo);
+  for (const m of matsReservados) await dbAtualizar('materiais', m);
   showToast('Agendamento criado!');
+}
+
+function editarAgendamento(id) {
+  const ag = db.agenda.find(x => x.id === id);
+  if (!ag) return;
+  document.getElementById('ag-cliente').value = ag.cliente || '';
+  document.getElementById('ag-telefone').value = ag.telefone || '';
+  document.getElementById('ag-data').value = ag.sessoes[0]?.data || '';
+  document.getElementById('ag-data-retirada').value = ag.dataRetirada || '';
+  document.getElementById('ag-hora-retirada').value = ag.horaRetirada || '';
+  document.getElementById('ag-sinal').value = ag.sinal || '';
+  document.getElementById('ag-obs').value = ag.obs || '';
+  document.getElementById('ag-status-cor').value = ag.statusCor || 'reservado';
+  selectedServicos = [...(ag.servicoIds||[])];
+  selectedMateriais = {...(ag.materiais||{})};
+  _agendaEditandoId = id;
+  renderServiceChips();
+  _populateTemaSelect();
+  document.getElementById('ag-tema').value = ag.temaId || '';
+  showToast('Editando agendamento — altere os campos e clique em "+ Agendar" para salvar.');
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function limparFormAgenda() {
@@ -68,6 +118,7 @@ function limparFormAgenda() {
   var temaEl = document.getElementById('ag-tema'); if (temaEl) temaEl.value = '';
   selectedServicos = [];
   selectedMateriais = {};
+  _agendaEditandoId = null;
   setToday();
   renderServiceChips();
 }
@@ -133,6 +184,7 @@ function renderAgenda() {
             <option value="personalizado" ${ag.statusCor==='personalizado'?'selected':''}>🟣 Personalizado</option>
             <option value="credito" ${ag.statusCor==='credito'?'selected':''}>🟠 Crédito</option>
           </select>
+          <button class="btn btn-edit" onclick="editarAgendamento('${ag.id}')">✏️</button>
           <button class="btn btn-edit" onclick="enviarWhatsappAgenda('${ag.id}')">💬</button>
           <button class="btn btn-danger" onclick="excluirAgendamento('${ag.id}')">✕</button>
         </div>
