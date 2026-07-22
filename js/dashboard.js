@@ -80,7 +80,7 @@ function renderDashboard() {
 
   // ÚLTIMAS FESTAS
   const ultimos = [...db.atendimentos].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5);
-  document.getElementById('ultimosAtend').innerHTML = ultimos.length ? `<table style="width:100%"><thead><tr><th>Data</th><th>Cliente</th><th>Festa</th><th>Valor</th></tr></thead><tbody>` +
+  document.getElementById('ultimosAtend').innerHTML = ultimos.length ? `<table class="data-table"><thead><tr><th>Data</th><th>Cliente</th><th>Festa</th><th>Valor</th></tr></thead><tbody>` +
     ultimos.map(a => {
       const ids2 = a.servicoIds || (a.servicoId ? [a.servicoId] : []);
       const sNomes = ids2.map(sid=>{const sv=db.festas.find(x=>x.id===sid);return sv?sv.nome:'?'}).join(' + ')||'—';
@@ -115,7 +115,7 @@ function renderDashboard() {
           : (_sessao.servico || _agServicos(item.ag));
         return `<tr><td><strong>${item.ag.cliente}</strong>${_hora}</td><td>${_srvNome||'—'}</td><td>${_badge}</td><td>${_btn}</td></tr>`;
       }).join('');
-      _sp.innerHTML = `<table style="width:100%"><thead><tr><th>Cliente</th><th>Festa</th><th>Status</th><th></th></tr></thead><tbody>${_rows}</tbody></table>`;
+      _sp.innerHTML = `<table class="data-table"><thead><tr><th>Cliente</th><th>Festa</th><th>Status</th><th></th></tr></thead><tbody>${_rows}</tbody></table>`;
     }
   }
 
