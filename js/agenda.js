@@ -7,6 +7,7 @@ let agBuscaClienteAtual = '';
 let _agCalMes = new Date().getMonth();
 let _agCalAno = new Date().getFullYear();
 let _agCalDiaSelecionado = null;
+let _agendaPendenteOrigem = null; // {agId, idx} — guarda de onde veio até a Liza confirmar em Atendimentos
 
 async function salvarAgendamento() {
   const cliente = document.getElementById('ag-cliente').value.trim();
@@ -78,7 +79,6 @@ function mudarMesCalendario(delta) {
 }
 
 function _statusDoDia(dataIso) {
-  // Prioriza o status mais "forte": alugado > personalizado > credito > reservado > devolveu
   const prioridade = ['alugado','personalizado','credito','reservado','devolveu'];
   const ags = db.agenda.filter(ag => ag.sessoes.some(s => s.data === dataIso));
   if (!ags.length) return null;
@@ -200,8 +200,8 @@ async function setStatusAgenda(id, cor) {
   await dbAtualizar('agenda', ag);
 }
 
-// ===================== REALIZAR = TRANSFERE PARA ATENDIMENTOS =====================
-async function realizarSessao(agId, idx) {
+// ===================== "REALIZAR" — leva pra Atendimentos, NÃO salva sozinho =====================
+function realizarSessao(agId, idx) {
   const ag = db.agenda.find(x => x.id === agId);
   if (!ag || !ag.sessoes[idx]) return;
 
@@ -212,36 +212,18 @@ async function realizarSessao(agId, idx) {
   const sinal = parseFloat(ag.sinal || 0);
   const saldo = Math.max(0, totalFestas - sinal);
 
-  if (!confirm(`Transferir "${ag.cliente}" para Atendimentos?\n\nTotal da festa: ${fmtMoney(totalFestas)}\nSinal já recebido: ${fmtMoney(sinal)}\nSaldo a registrar: ${fmtMoney(saldo)}`)) return;
+  selectedServicos = [...(ag.servicoIds||[])];
+  selectedMateriais = {...(ag.materiais||{})};
+  document.getElementById('atend-cliente').value = ag.cliente;
+  document.getElementById('atend-data').value = ag.sessoes[idx].data;
+  document.getElementById('atend-valor').value = saldo.toFixed(2);
+  document.getElementById('atend-obs').value = `Vindo da agenda. Total da festa: ${fmtMoney(totalFestas)} · Sinal já pago: ${fmtMoney(sinal)}.`;
 
-  const novoAtendimento = {
-    id: uid(),
-    cliente: ag.cliente,
-    data: ag.sessoes[idx].data,
-    servicoIds: [...(ag.servicoIds||[])],
-    materiais: {...(ag.materiais||{})},
-    valor: saldo,
-    pagto: 'pix',
-    obs: `Convertido da agenda. Total: ${fmtMoney(totalFestas)} · Sinal já pago: ${fmtMoney(sinal)}.` + (ag.obs ? ' ' + ag.obs : ''),
-    statusCor: null
-  };
-  db.atendimentos.push(novoAtendimento);
+  _agendaPendenteOrigem = { agId, idx };
 
-  const matsAtualizados = [];
-  Object.entries(ag.materiais||{}).forEach(([matId, qtd]) => {
-    const m = db.materiais.find(x => x.id === matId);
-    if (m) { m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd)); matsAtualizados.push(m); }
-  });
-
-  db.agenda = db.agenda.filter(x => x.id !== agId);
-
-  saveData(); renderAll();
-
-  await dbInserir('atendimentos', novoAtendimento);
-  for (const m of matsAtualizados) await dbAtualizar('materiais', m);
-  await dbExcluir('agenda', agId);
-
-  showToast('Agendamento transferido para Atendimentos!');
+  showSection('atendimentos');
+  renderServiceChips();
+  showToast('Revise pagamento e estoque, depois clique em "Registrar Atendimento" para finalizar.');
 }
 
 async function marcarFalta(agId, idx) {
