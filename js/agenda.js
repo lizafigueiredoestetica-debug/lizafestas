@@ -34,6 +34,27 @@ async function salvarAgendamento() {
   };
   db.agenda.push(novo);
 
+// Se houver sinal, registra já como receita recebida (Atendimento + Financeiro)
+if (novo.sinal > 0) {
+  const sinalAtend = {
+    id: uid(),
+    cliente: novo.cliente,
+    data: novo.dataRetirada || data,
+    servicoIds: [...novo.servicoIds],
+    materiais: {},
+    valor: novo.sinal,
+    pagto: 'pix',
+    obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
+    statusCor: novo.statusCor
+  };
+  db.atendimentos.push(sinalAtend);
+  await dbInserir('atendimentos', sinalAtend);
+}
+
+saveData(); renderAll(); limparFormAgenda();
+await dbInserir('agenda', novo);
+showToast('Agendamento criado!');
+
   saveData(); renderAll(); limparFormAgenda();
   await dbInserir('agenda', novo);
   showToast('Agendamento criado!');
