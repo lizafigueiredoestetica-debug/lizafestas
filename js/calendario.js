@@ -1,7 +1,6 @@
 /* =====================================================
    LIZA FESTAS — calendario.js
    Calendário estilo Google Agenda: visão Mês e Semana
-   (adaptado do calendario.js da estética)
    ===================================================== */
 
 var _calView = 'mes';
