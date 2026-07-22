@@ -1,19 +1,17 @@
 /* =====================================================
    LIZA FESTAS — agenda.js
-   Agendamentos: cadastro, sessões/recorrência, conflito
-   de horário, retirada/devolução, status colorido
+   Agendamentos — tabela `agenda`
    ===================================================== */
 
 let agendaFiltroAtual = 'tudo';
 let agBuscaClienteAtual = '';
 
-// ===================== CADASTRO =====================
-function salvarAgendamento() {
+async function salvarAgendamento() {
   const cliente = document.getElementById('ag-cliente').value.trim();
   const telefone = document.getElementById('ag-telefone').value;
   const data = document.getElementById('ag-data').value;
   const hora = document.getElementById('ag-hora').value;
-  const recorrencia = document.getElementById('ag-recorrencia').value; // '', semanal, quinzenal, mensal, personalizado
+  const recorrencia = document.getElementById('ag-recorrencia').value;
   const qtdRepeticoes = parseInt(document.getElementById('ag-repeticoes').value || '1');
   const dataRetirada = document.getElementById('ag-data-retirada').value;
   const horaRetirada = document.getElementById('ag-hora-retirada').value;
@@ -23,25 +21,24 @@ function salvarAgendamento() {
   if (!selectedServicos.length) { showToast('Selecione ao menos uma festa!'); return; }
 
   const sessoes = _gerarSessoes(data, hora, recorrencia, qtdRepeticoes);
-
-  // Checagem de conflito de horário antes de gravar
   const conflito = _checarConflitoHorario(sessoes, null);
   if (conflito) {
     if (!confirm('⚠️ Conflito de horário detectado com "' + conflito.cliente + '" em ' + fmtDate(conflito.data) + (conflito.hora ? ' às ' + conflito.hora : '') + '.\n\nDeseja agendar mesmo assim?')) return;
   }
 
-  db.agenda.push({
-    id: uid(),
-    cliente, telefone,
+  const novo = {
+    id: uid(), cliente, telefone,
     sessoes,
     servicoIds: [...selectedServicos],
     dataRetirada, horaRetirada,
     sinal: parseFloat(sinal || 0),
     statusCor: 'reservado',
     obs: document.getElementById('ag-obs').value
-  });
+  };
+  db.agenda.push(novo);
 
   saveData(); renderAll(); limparFormAgenda();
+  await dbInserir('agenda', novo);
   showToast('Agendamento criado!');
 }
 
@@ -88,7 +85,6 @@ function limparFormAgenda() {
   renderServiceChips();
 }
 
-// ===================== LISTAGEM / FILTRO =====================
 function setAgendaFiltro(filtro, btn) {
   agendaFiltroAtual = filtro;
   document.querySelectorAll('.agenda-btn').forEach(b => b.classList.remove('active'));
@@ -102,27 +98,15 @@ function renderAgenda() {
   let items = [...db.agenda];
 
   if (agBuscaClienteAtual) items = items.filter(ag => ag.cliente.toLowerCase().includes(agBuscaClienteAtual));
+  if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
+  else if (agendaFiltroAtual === 'pendentes') items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
+  else if (agendaFiltroAtual === 'realizados') items = items.filter(ag => ag.sessoes.every(s => s.status === 'realizado'));
 
-  if (agendaFiltroAtual === 'hoje') {
-    items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
-  } else if (agendaFiltroAtual === 'pendentes') {
-    items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
-  } else if (agendaFiltroAtual === 'realizados') {
-    items = items.filter(ag => ag.sessoes.every(s => s.status === 'realizado'));
-  }
-
-  items.sort((a, b) => {
-    const da = a.sessoes[0]?.data || '';
-    const db_ = b.sessoes[0]?.data || '';
-    return da.localeCompare(db_);
-  });
+  items.sort((a, b) => (a.sessoes[0]?.data||'').localeCompare(b.sessoes[0]?.data||''));
 
   const cont = document.getElementById('agendaLista');
   if (!cont) return;
-  if (!items.length) {
-    cont.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Nenhum agendamento encontrado</p></div>';
-    return;
-  }
+  if (!items.length) { cont.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Nenhum agendamento encontrado</p></div>'; return; }
 
   cont.innerHTML = items.map(ag => {
     const cor = (typeof _coresStatus !== 'undefined' && _coresStatus[ag.statusCor]) || { bg:'#F9F9F9', border:'#DDD', label:'Sem status' };
@@ -164,39 +148,40 @@ function renderAgenda() {
   }).join('');
 }
 
-// ===================== AÇÕES =====================
-function setStatusAgenda(id, cor) {
+async function setStatusAgenda(id, cor) {
   const ag = db.agenda.find(x => x.id === id);
   if (!ag) return;
   ag.statusCor = cor;
   saveData(); renderAgenda(); renderStatusAgendaPanel();
+  await dbAtualizar('agenda', ag);
 }
 
-function realizarSessao(agId, idx) {
+async function realizarSessao(agId, idx) {
   const ag = db.agenda.find(x => x.id === agId);
   if (!ag || !ag.sessoes[idx]) return;
   ag.sessoes[idx].status = 'realizado';
   saveData(); renderAll();
+  await dbAtualizar('agenda', ag);
   showToast('Sessão marcada como realizada!');
 }
 
-function marcarFalta(agId, idx) {
+async function marcarFalta(agId, idx) {
   const ag = db.agenda.find(x => x.id === agId);
   if (!ag || !ag.sessoes[idx]) return;
   ag.sessoes[idx].status = 'faltou';
   if (confirm('Deseja reagendar essa sessão agora?')) {
     const novaData = prompt('Nova data (AAAA-MM-DD):', ag.sessoes[idx].data);
-    if (novaData) {
-      ag.sessoes.push({ data: novaData, hora: ag.sessoes[idx].hora, servicoIds: ag.sessoes[idx].servicoIds, status: 'pendente' });
-    }
+    if (novaData) ag.sessoes.push({ data: novaData, hora: ag.sessoes[idx].hora, servicoIds: ag.sessoes[idx].servicoIds, status: 'pendente' });
   }
   saveData(); renderAll();
+  await dbAtualizar('agenda', ag);
   showToast('Falta registrada.');
 }
 
-function excluirAgendamento(id) {
+async function excluirAgendamento(id) {
   if (!confirm('Excluir este agendamento e todas as suas sessões?')) return;
   db.agenda = db.agenda.filter(x => x.id !== id);
   saveData(); renderAll();
+  await dbExcluir('agenda', id);
   showToast('Agendamento excluído.');
 }
