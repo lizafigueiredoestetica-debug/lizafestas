@@ -35,6 +35,15 @@ async function registrarAtendimento() {
   await dbInserir('atendimentos', novo);
   for (const m of matsAtualizados) await dbAtualizar('materiais', m);
 
+  // Se veio da Agenda (via "Realizar"), remove o agendamento de origem só agora
+  if (_agendaPendenteOrigem) {
+    const agId = _agendaPendenteOrigem.agId;
+    db.agenda = db.agenda.filter(x => x.id !== agId);
+    saveData(); renderAll();
+    await dbExcluir('agenda', agId);
+    _agendaPendenteOrigem = null;
+  }
+
   showToast('Atendimento registrado!');
 }
 
@@ -43,6 +52,7 @@ function limparFormAtendimento() {
   document.getElementById('atend-pagto').value = 'pix';
   selectedServicos = [];
   selectedMateriais = {};
+  _agendaPendenteOrigem = null;
   setToday();
   renderServiceChips();
 }
