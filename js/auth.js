@@ -1,6 +1,6 @@
 /* =====================================================
    LIZA FESTAS — auth.js
-   Login, logout, usuários, permissões, check-in
+   Login, logout, usuários, permissões
    ===================================================== */
 
 var _usuarioLogado = null;
