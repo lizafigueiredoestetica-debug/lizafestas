@@ -90,12 +90,15 @@ function renderAtendimentos() {
       <td>${fmtDate(a.data)}</td>
       <td><strong>${a.cliente}</strong></td>
       <td>${festasNomes}</td>
-      <td style="position:relative">
-        <span onclick="event.stopPropagation();toggleStatusMenuAtend('${a.id}')" style="cursor:pointer;display:inline-block;width:14px;height:14px;border-radius:50%;background:${corAtend.border};border:1px solid #ccc"></span>
-        <div id="statusmenu-atend-${a.id}" style="display:none;position:absolute;top:20px;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:50;min-width:150px">
-          ${Object.entries(_coresStatus).map(([key,cor]) => `<div onclick="event.stopPropagation();setStatusAtend('${a.id}','${key}')" style="padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:${cor.border}"></span>${cor.label.split(' ').slice(1).join(' ')}</div>`).join('')}
-        </div>
-      </td>
+      <td style="position:relative;cursor:pointer" onclick="event.stopPropagation();toggleStatusMenuAtend('${a.id}')">
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${corAtend.border};border:2px solid #fff;box-shadow:0 0 0 1px ${corAtend.border}"></span>
+          <span style="font-size:11px;color:${corAtend.border};font-weight:600">${a.statusCor ? (_coresStatus[a.statusCor].label.split(' ').slice(1).join(' ')) : '—'}</span>
+         </span>
+         <div id="statusmenu-atend-${a.id}" style="display:none;position:absolute;top:24px;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:50;min-width:150px">
+           ${Object.entries(_coresStatus).map(([key,cor]) => `<div onclick="event.stopPropagation();setStatusAtend('${a.id}','${key}')" style="padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:${cor.border}"></span>${cor.label.split(' ').slice(1).join(' ')}</div>`).join('')}
+         </div>
+       </td>
       <td><span class="badge-pill ${pagtoBadge(a.pagto)}">${pagtoLabel(a.pagto)}</span></td>
       <td>${fmtMoney(a.valor)}</td>
       <td style="display:flex;gap:4px">
