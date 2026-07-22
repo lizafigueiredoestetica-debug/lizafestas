@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/sidebar.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/calendario.css">
 </head>
 <body>
 
@@ -102,130 +103,105 @@
   </section>
 
   <!-- ===================== AGENDA ===================== -->
-<section id="sec-agenda" class="section">
-  <h2>Agenda</h2>
-  <div class="form-card">
-    <div class="form-grid">
-      <div class="form-group"><label>Cliente</label><input id="ag-cliente"></div>
-      <div class="form-group"><label>Telefone</label><input id="ag-telefone" onkeyup="mascaraTel(this)"></div>
-      <div class="form-group"><label>Data</label><input type="date" id="ag-data"></div>
-      <div class="form-group"><label>Data de retirada</label><input type="date" id="ag-data-retirada"></div>
-      <div class="form-group"><label>Hora retirada</label><input type="time" id="ag-hora-retirada"></div>
-      <div class="form-group"><label>Sinal (R$)</label><input type="number" id="ag-sinal" step="0.01"></div>
-      <div class="form-group"><label>Tema</label>
-        <select id="ag-tema"><option value="">Nenhum</option></select>
+  <section id="sec-agenda" class="section">
+    <h2>Agenda</h2>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group"><label>Cliente</label><input id="ag-cliente"></div>
+        <div class="form-group"><label>Telefone</label><input id="ag-telefone" onkeyup="mascaraTel(this)"></div>
+        <div class="form-group"><label>Data</label><input type="date" id="ag-data"></div>
+        <div class="form-group"><label>Data de retirada</label><input type="date" id="ag-data-retirada"></div>
+        <div class="form-group"><label>Hora retirada</label><input type="time" id="ag-hora-retirada"></div>
+        <div class="form-group"><label>Sinal (R$)</label><input type="number" id="ag-sinal" step="0.01"></div>
+        <div class="form-group"><label>Tema</label>
+          <select id="ag-tema"><option value="">Nenhum</option></select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="ag-status-cor">
+            <option value="reservado">🟢 Reservado</option>
+            <option value="alugado">🔴 Alugado</option>
+            <option value="devolveu">⚫ Devolveu</option>
+            <option value="personalizado">🟣 Personalizado</option>
+            <option value="credito">🟠 Crédito</option>
+          </select>
+        </div>
       </div>
-      <div class="form-group"><label>Status</label>
-        <select id="ag-status-cor">
-          <option value="reservado">🟢 Reservado</option>
-          <option value="alugado">🔴 Alugado</option>
-          <option value="devolveu">⚫ Devolveu</option>
-          <option value="personalizado">🟣 Personalizado</option>
-          <option value="credito">🟠 Crédito</option>
-        </select>
+      <div class="form-group"><label>Festas</label><input id="ag-servico-busca" placeholder="Buscar festa..." onkeyup="renderServiceChips()"></div>
+      <div id="serviceChips" class="chips-wrap"></div>
+      <div class="form-group"><label>Materiais</label><input id="ag-material-busca" placeholder="Buscar material..." onkeyup="renderServiceChips()"></div>
+      <div id="materialChipsAgenda" class="chips-wrap"></div>
+      <div id="ag-material-qtd-wrap"></div>
+      <div class="form-group"><label>Observações</label><textarea id="ag-obs"></textarea></div>
+      <button class="btn btn-primary" onclick="salvarAgendamento()">+ Agendar</button>
+      <button class="btn btn-secondary" onclick="limparFormAgenda()">Limpar</button>
+    </div>
+
+    <div class="panel" style="margin-bottom:1.25rem">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="calNavegar(-1)">‹</button>
+          <span id="calTitulo" style="font-weight:600"></span>
+          <button class="btn btn-secondary btn-sm" onclick="calNavegar(1)">›</button>
+          <button class="btn btn-secondary btn-sm" onclick="calHoje()">Hoje</button>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button id="calBtnMes" class="agenda-btn active" onclick="calSetView('mes')">Mês</button>
+          <button id="calBtnSem" class="agenda-btn" onclick="calSetView('semana')">Semana</button>
+        </div>
       </div>
+      <div id="calGrid" style="padding:1rem"></div>
     </div>
-    <div class="form-group"><label>Festas</label><input id="ag-servico-busca" placeholder="Buscar festa..." onkeyup="renderServiceChips()"></div>
-    <div id="serviceChips" class="chips-wrap"></div>
-    <div class="form-group"><label>Materiais</label><input id="ag-material-busca" placeholder="Buscar material..." onkeyup="renderServiceChips()"></div>
-    <div id="materialChipsAgenda" class="chips-wrap"></div>
-    <div id="ag-material-qtd-wrap"></div>
-    <div class="form-group"><label>Observações</label><textarea id="ag-obs"></textarea></div>
-    <button class="btn btn-primary" onclick="salvarAgendamento()">+ Agendar</button>
-    <button class="btn btn-secondary" onclick="limparFormAgenda()">Limpar</button>
-  </div>
 
-  <div class="panel" style="margin-bottom:1.25rem">
-    <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="calNavegar(-1)">‹</button>
-        <span id="calTitulo" style="font-weight:600"></span>
-        <button class="btn btn-secondary btn-sm" onclick="calNavegar(1)">›</button>
-        <button class="btn btn-secondary btn-sm" onclick="calHoje()">Hoje</button>
+    <div class="agenda-filtros">
+      <input id="agBuscaCliente" placeholder="Buscar cliente..." onkeyup="renderAgenda()">
+      <button class="agenda-btn active" onclick="setAgendaFiltro('tudo',this)">Tudo</button>
+      <button class="agenda-btn" onclick="setAgendaFiltro('hoje',this)">Hoje</button>
+      <button class="agenda-btn" onclick="setAgendaFiltro('pendentes',this)">Pendentes</button>
+      <button class="agenda-btn" onclick="setAgendaFiltro('realizados',this)">Realizados</button>
+    </div>
+    <div id="agendaLista"></div>
+  </section>
+
+  <!-- ===================== ATENDIMENTOS ===================== -->
+  <section id="sec-atendimentos" class="section">
+    <h2>Atendimentos</h2>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group"><label>Cliente</label><input id="atend-cliente"></div>
+        <div class="form-group"><label>Data</label><input type="date" id="atend-data"></div>
+        <div class="form-group"><label>Valor (R$)</label><input type="number" id="atend-valor" step="0.01"></div>
+        <div class="form-group"><label>Pagamento</label>
+          <select id="atend-pagto">
+            <option value="pix">PIX</option><option value="dinheiro">Dinheiro</option>
+            <option value="cartao_debito">Cartão Débito</option><option value="cartao_credito">Cartão Crédito</option>
+          </select>
+        </div>
       </div>
-      <div style="display:flex;gap:4px">
-        <button id="calBtnMes" class="agenda-btn active" onclick="calSetView('mes')">Mês</button>
-        <button id="calBtnSem" class="agenda-btn" onclick="calSetView('semana')">Semana</button>
-      </div>
+      <div class="form-group"><label>Festas</label><input id="atend-servico-busca" placeholder="Buscar festa..." onkeyup="renderServiceChips()"></div>
+      <div id="serviceChips2" class="chips-wrap"></div>
+      <div class="form-group"><label>Materiais usados</label><input id="atend-material-busca" placeholder="Buscar material..." onkeyup="renderServiceChips()"></div>
+      <div id="materialChips" class="chips-wrap"></div>
+      <div id="atend-material-qtd-wrap"></div>
+      <div class="form-group"><label>Observações</label><textarea id="atend-obs" placeholder="Observações do atendimento..."></textarea></div>
+      <button class="btn btn-primary" onclick="registrarAtendimento()">✓ Registrar Atendimento</button>
+      <button class="btn btn-secondary" onclick="limparFormAtendimento()">Limpar</button>
     </div>
-    <div id="calGrid" style="padding:1rem"></div>
-  </div>
 
-  <div class="agenda-filtros">
-    <input id="agBuscaCliente" placeholder="Buscar cliente..." onkeyup="renderAgenda()">
-    <button class="agenda-btn active" onclick="setAgendaFiltro('tudo',this)">Tudo</button>
-    <button class="agenda-btn" onclick="setAgendaFiltro('hoje',this)">Hoje</button>
-    <button class="agenda-btn" onclick="setAgendaFiltro('pendentes',this)">Pendentes</button>
-    <button class="agenda-btn" onclick="setAgendaFiltro('realizados',this)">Realizados</button>
-  </div>
-  <div id="agendaLista"></div>
-</section>
-
-<!-- ===================== TEMAS ===================== -->
-<section id="sec-temas" class="section">
-  <h2>Temas</h2>
-  <div class="form-card">
-    <div class="form-grid">
-      <div class="form-group"><label>Nome do tema</label><input id="tema-nome"></div>
-      <div class="form-group"><label>Descrição</label><input id="tema-descricao"></div>
+    <div class="filtros-row">
+      <input id="filtAtendCliente" placeholder="Buscar cliente..." onkeyup="renderAtendimentos()">
+      <input type="date" id="filtAtendDataIni" onchange="renderAtendimentos()">
+      <input type="date" id="filtAtendDataFim" onchange="renderAtendimentos()">
+      <select id="filtAtendPagto" onchange="renderAtendimentos()">
+        <option value="">Todos pagamentos</option>
+        <option value="pix">PIX</option><option value="dinheiro">Dinheiro</option>
+        <option value="cartao_debito">Débito</option><option value="cartao_credito">Crédito</option>
+      </select>
     </div>
-    <div class="form-group">
-      <label>Festas incluídas</label>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="abrirSeletorFestasTema()">🎉 Selecionar festas (<span id="temaFestasCount">0</span>)</button>
-    </div>
-    <div class="form-group">
-      <label>Fotos do tema</label>
-      <input type="file" id="tema-fotos-input" accept="image/*" multiple onchange="onTemaFotosSelecionadas(event)">
-      <div id="temaFotosPreview" class="chips-wrap" style="margin-top:8px"></div>
-    </div>
-    <button class="btn btn-primary" onclick="salvarTema()">+ Cadastrar Tema</button>
-    <button class="btn btn-secondary" onclick="limparFormTema()">Limpar</button>
-  </div>
-
-  <input id="filtTemaNome" placeholder="Buscar tema..." onkeyup="renderTemas()">
-  <div id="temasLista" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem"></div>
-</section>
-
-<!-- ===================== ATENDIMENTOS ===================== -->
-<section id="sec-atendimentos" class="section">
-  <h2>Atendimentos</h2>
-  <div class="form-card">
-    <div class="form-grid">
-      <div class="form-group"><label>Cliente</label><input id="atend-cliente"></div>
-      <div class="form-group"><label>Data</label><input type="date" id="atend-data"></div>
-      <div class="form-group"><label>Valor (R$)</label><input type="number" id="atend-valor" step="0.01"></div>
-      <div class="form-group"><label>Pagamento</label>
-        <select id="atend-pagto">
-          <option value="pix">PIX</option><option value="dinheiro">Dinheiro</option>
-          <option value="cartao_debito">Cartão Débito</option><option value="cartao_credito">Cartão Crédito</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group"><label>Festas</label><input id="atend-servico-busca" placeholder="Buscar festa..." onkeyup="renderServiceChips()"></div>
-    <div id="serviceChips2" class="chips-wrap"></div>
-    <div class="form-group"><label>Materiais usados</label><input id="atend-material-busca" placeholder="Buscar material..." onkeyup="renderServiceChips()"></div>
-    <div id="materialChips" class="chips-wrap"></div>
-    <div id="atend-material-qtd-wrap"></div>
-    <div class="form-group"><label>Observações</label><textarea id="atend-obs" placeholder="Observações do atendimento..."></textarea></div>
-    <button class="btn btn-primary" onclick="registrarAtendimento()">✓ Registrar Atendimento</button>
-    <button class="btn btn-secondary" onclick="limparFormAtendimento()">Limpar</button>
-  </div>
-
-  <div class="filtros-row">
-    <input id="filtAtendCliente" placeholder="Buscar cliente..." onkeyup="renderAtendimentos()">
-    <input type="date" id="filtAtendDataIni" onchange="renderAtendimentos()">
-    <input type="date" id="filtAtendDataFim" onchange="renderAtendimentos()">
-    <select id="filtAtendPagto" onchange="renderAtendimentos()">
-      <option value="">Todos pagamentos</option>
-      <option value="pix">PIX</option><option value="dinheiro">Dinheiro</option>
-      <option value="cartao_debito">Débito</option><option value="cartao_credito">Crédito</option>
-    </select>
-  </div>
-  <table class="data-table">
-    <thead><tr><th></th><th>Data</th><th>Cliente</th><th>Festa</th><th>Status</th><th>Pagamento</th><th>Valor</th><th></th></tr></thead>
-    <tbody id="tbodyAtend"></tbody>
-  </table>
-</section>
+    <table class="data-table">
+      <thead><tr><th></th><th>Data</th><th>Cliente</th><th>Festa</th><th>Status</th><th>Pagamento</th><th>Valor</th><th></th></tr></thead>
+      <tbody id="tbodyAtend"></tbody>
+    </table>
+  </section>
 
   <!-- ===================== FESTAS ===================== -->
   <section id="sec-festas" class="section">
@@ -316,7 +292,26 @@
   <!-- ===================== TEMAS ===================== -->
   <section id="sec-temas" class="section">
     <h2>Temas</h2>
-    <p class="section-sub" style="color:var(--text-light)">Módulo ainda não implementado — aguardando definição dos campos.</p>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group"><label>Nome do tema</label><input id="tema-nome"></div>
+        <div class="form-group"><label>Descrição</label><input id="tema-descricao"></div>
+      </div>
+      <div class="form-group">
+        <label>Festas incluídas</label>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="abrirSeletorFestasTema()">🎉 Selecionar festas (<span id="temaFestasCount">0</span>)</button>
+      </div>
+      <div class="form-group">
+        <label>Fotos do tema</label>
+        <input type="file" id="tema-fotos-input" accept="image/*" multiple onchange="onTemaFotosSelecionadas(event)">
+        <div id="temaFotosPreview" class="chips-wrap" style="margin-top:8px"></div>
+      </div>
+      <button class="btn btn-primary" onclick="salvarTema()">+ Cadastrar Tema</button>
+      <button class="btn btn-secondary" onclick="limparFormTema()">Limpar</button>
+    </div>
+
+    <input id="filtTemaNome" placeholder="Buscar tema..." onkeyup="renderTemas()">
+    <div id="temasLista" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem"></div>
   </section>
 
 </div>
@@ -354,6 +349,7 @@
 <script src="js/financeiro.js"></script>
 <script src="js/whatsapp.js"></script>
 <script src="js/agenda.js"></script>
+<script src="js/calendario.js"></script>
 <script src="js/temas.js"></script>
 <script src="js/app.js"></script>
 </body>
