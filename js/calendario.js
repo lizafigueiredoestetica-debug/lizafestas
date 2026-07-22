@@ -33,7 +33,7 @@ function _calEventos() {
     ag.sessoes.forEach(function(s, idx) {
       if (!s.data) return;
       eventos.push({
-        data: s.data, hora: s.hora || '', horaFim: s.horaFim || '',
+        data: s.data, hora: ag.horaRetirada || '', horaFim: '',
         cliente: ag.cliente,
         servico: (function(){ var ids=s.servicoIds||[]; if(ids.length) return ids.map(function(id){ var sv=db.festas.find(function(x){return x.id===id;}); return sv?sv.nome:id; }).join(' + '); return s.servico||_agServicos(ag); })(),
         status: s.status, agId: ag.id, sessaoIdx: idx,
@@ -88,7 +88,7 @@ function _renderCalMes(grid, titulo) {
   for (var d = 1; d <= diasNoMes; d++) {
     var dStr = ano + '-' + String(mes+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
     var isHoje = dStr === hoje;
-    var evs = evMap[dStr] || [];
+    var evs = (evMap[dStr] || []).slice().sort(function(a,b){ return (a.hora||'99:99').localeCompare(b.hora||'99:99'); });
     html += '<div class="cal-day' + (isHoje ? ' hoje-cal' : '') + '">';
     html += '<div class="cal-day-num">' + d + '</div>';
     var max = 3;
