@@ -29,6 +29,7 @@ function renderMateriais(){
   if (!items.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🧴</div><p>Nenhum material cadastrado</p></div></td></tr>`; return; }
   tbody.innerHTML = items.map(m => {
     const baixo=parseInt(m.qtd)<parseInt(m.min||0);
+    const naRua = db.agenda.filter(ag => !ag.sessoes.every(s => s.status === 'realizado')).reduce((soma, ag) => soma + (parseInt((ag.materiais||{})[m.id]) || 0), 0);
     return `
     <tr class="data-row" onclick="toggleDetail('mat-${m.id}')">
       <td><span class="expand-icon" id="icon-mat-${m.id}">▶</span></td>
@@ -37,6 +38,7 @@ function renderMateriais(){
       <td>${fmtMoney(m.custo)}</td>
       <td>${m.qtd} ${m.unidade}</td>
       <td>${m.min||'0'}</td>
+      <td>${naRua > 0 ? `<span class="badge-pill badge-inativo">${naRua} na rua</span>` : '—'}</td>
       <td><span class="badge-pill ${baixo?'badge-inativo':'badge-ativo'}">${baixo?'Baixo':'OK'}</span></td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-edit" onclick="event.stopPropagation();editItem('mat','${m.id}')">✏️</button>
