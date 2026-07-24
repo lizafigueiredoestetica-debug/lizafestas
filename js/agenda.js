@@ -50,6 +50,7 @@ async function salvarAgendamento() {
       obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
       statusCor: novo.statusCor,
       agendaOrigemId: null
+      isSinal: true
     };
     db.atendimentos.push(sinalAtend);
     await dbInserir('atendimentos', sinalAtend);
