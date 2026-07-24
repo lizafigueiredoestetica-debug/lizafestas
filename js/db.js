@@ -108,8 +108,8 @@ function _toRowFesta(f) { return { id: f.id, nome: f.nome, duracao: f.duracao ? 
 function _fromRowMaterial(r) { return { id: r.id, nome: r.nome, fornecedor: r.fornecedor, custo: r.custo, qtd: r.qtd, min: r.minimo, unidade: r.unidade }; }
 function _toRowMaterial(m) { return { id: m.id, nome: m.nome, fornecedor: m.fornecedor, custo: m.custo, qtd: parseInt(m.qtd)||0, minimo: parseInt(m.min)||0, unidade: m.unidade }; }
 
-function _fromRowAtendimento(r) { return { id: r.id, cliente: r.cliente, data: r.data, servicoIds: r.festa_ids||[], materiais: r.materiais_usados||{}, valor: r.valor, pagto: r.pagto, obs: r.obs, statusCor: r.status_cor, agendaOrigemId: r.agenda_origem_id||null }; }
-function _toRowAtendimento(a) { return { id: a.id, cliente: a.cliente, data: a.data, festa_ids: a.servicoIds||[], materiais_usados: a.materiais||{}, valor: a.valor, pagto: a.pagto, obs: a.obs, status_cor: a.statusCor||null, agenda_origem_id: a.agendaOrigemId||null }; }
+function _fromRowAtendimento(r) { return { id: r.id, cliente: r.cliente, data: r.data, servicoIds: r.festa_ids||[], materiais: r.materiais_usados||{}, valor: r.valor, pagto: r.pagto, obs: r.obs, statusCor: r.status_cor, agendaOrigemId: r.agenda_origem_id||null, isSinal: !!r.is_sinal }; }
+function _toRowAtendimento(a) { return { id: a.id, cliente: a.cliente, data: a.data, festa_ids: a.servicoIds||[], materiais_usados: a.materiais||{}, valor: a.valor, pagto: a.pagto, obs: a.obs, status_cor: a.statusCor||null, agenda_origem_id: a.agendaOrigemId||null, is_sinal: !!a.isSinal }; }
 
 function _fromRowDespAdm(r) { return { id: r.id, desc: r.descricao, categoria: r.categoria, valor: r.valor, data: r.data }; }
 function _toRowDespAdm(d) { return { id: d.id, descricao: d.desc, categoria: d.categoria, valor: d.valor, data: d.data }; }
