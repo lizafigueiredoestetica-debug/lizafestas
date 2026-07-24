@@ -4,8 +4,7 @@
 
 let agendaFiltroAtual = 'tudo';
 let agBuscaClienteAtual = '';
-let _agendaPendenteOrigem = null; // {agId, idx, statusCor} — guarda de onde veio até a Liza confirmar em Atendimentos
-let _agendaEditandoId = null;     // id do agendamento sendo editado (null = criando novo)
+let _agendaPendenteOrigem = null; // {agId, idx, statusCor}
 
 async function salvarAgendamento() {
   const cliente = document.getElementById('ag-cliente').value.trim();
@@ -20,31 +19,6 @@ async function salvarAgendamento() {
   if (!cliente || !data) { showToast('Preencha cliente e data!'); return; }
   if (!selectedServicos.length) { showToast('Selecione ao menos uma festa!'); return; }
 
-  // ===== MODO EDIÇÃO =====
-  if (_agendaEditandoId) {
-    const ag = db.agenda.find(x => x.id === _agendaEditandoId);
-    if (ag) {
-      ag.cliente = cliente;
-      ag.telefone = telefone;
-      ag.sessoes = [{ data, hora: '', servicoIds: [...selectedServicos], status: ag.sessoes[0]?.status || 'pendente' }];
-      ag.servicoIds = [...selectedServicos];
-      ag.materiais = {...selectedMateriais};
-      ag.temaId = temaId;
-      ag.dataRetirada = dataRetirada;
-      ag.horaRetirada = horaRetirada;
-      ag.sinal = parseFloat(sinal || 0);
-      ag.statusCor = statusCor;
-      ag.obs = document.getElementById('ag-obs').value;
-      saveData(); renderAll();
-      await dbAtualizar('agenda', ag);
-      showToast('Agendamento atualizado!');
-    }
-    _agendaEditandoId = null;
-    limparFormAgenda();
-    return;
-  }
-
-  // ===== MODO CRIAÇÃO =====
   const sessoes = [{ data, hora: '', servicoIds: [...selectedServicos], status: 'pendente' }];
   const novo = {
     id: uid(), cliente, telefone,
@@ -55,59 +29,34 @@ async function salvarAgendamento() {
     dataRetirada, horaRetirada,
     sinal: parseFloat(sinal || 0),
     statusCor,
-    obs: document.getElementById('ag-obs').value
+    obs: document.getElementById('ag-obs').value,
+    sinalAtendId: null
   };
   db.agenda.push(novo);
 
-  // Baixa de estoque já na reserva (materiais ficam "na rua")
   const matsReservados = [];
   Object.entries(novo.materiais).forEach(([matId, qtd]) => {
     const m = db.materiais.find(x => x.id === matId);
     if (m) { m.qtd = Math.max(0, parseInt(m.qtd) - parseInt(qtd)); matsReservados.push(m); }
   });
 
-  // Se houver sinal, registra já como receita recebida (Atendimento + Financeiro)
   if (novo.sinal > 0) {
     const sinalAtend = {
-      id: uid(),
-      cliente: novo.cliente,
-      data: novo.dataRetirada || data,
-      servicoIds: [...novo.servicoIds],
-      materiais: {},
-      valor: novo.sinal,
-      pagto: 'pix',
+      id: uid(), cliente: novo.cliente, data: novo.dataRetirada || data,
+      servicoIds: [...novo.servicoIds], materiais: {},
+      valor: novo.sinal, pagto: 'pix',
       obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
       statusCor: novo.statusCor
     };
     db.atendimentos.push(sinalAtend);
     await dbInserir('atendimentos', sinalAtend);
+    novo.sinalAtendId = sinalAtend.id;
   }
 
   saveData(); renderAll(); limparFormAgenda();
   await dbInserir('agenda', novo);
   for (const m of matsReservados) await dbAtualizar('materiais', m);
   showToast('Agendamento criado!');
-}
-
-function editarAgendamento(id) {
-  const ag = db.agenda.find(x => x.id === id);
-  if (!ag) return;
-  document.getElementById('ag-cliente').value = ag.cliente || '';
-  document.getElementById('ag-telefone').value = ag.telefone || '';
-  document.getElementById('ag-data').value = ag.sessoes[0]?.data || '';
-  document.getElementById('ag-data-retirada').value = ag.dataRetirada || '';
-  document.getElementById('ag-hora-retirada').value = ag.horaRetirada || '';
-  document.getElementById('ag-sinal').value = ag.sinal || '';
-  document.getElementById('ag-obs').value = ag.obs || '';
-  document.getElementById('ag-status-cor').value = ag.statusCor || 'reservado';
-  selectedServicos = [...(ag.servicoIds||[])];
-  selectedMateriais = {...(ag.materiais||{})};
-  _agendaEditandoId = id;
-  renderServiceChips();
-  _populateTemaSelect();
-  document.getElementById('ag-tema').value = ag.temaId || '';
-  showToast('Editando agendamento — altere os campos e clique em "+ Agendar" para salvar.');
-  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function limparFormAgenda() {
@@ -118,7 +67,6 @@ function limparFormAgenda() {
   var temaEl = document.getElementById('ag-tema'); if (temaEl) temaEl.value = '';
   selectedServicos = [];
   selectedMateriais = {};
-  _agendaEditandoId = null;
   setToday();
   renderServiceChips();
 }
@@ -138,15 +86,16 @@ function setAgendaFiltro(filtro, btn) {
   renderAgenda();
 }
 
-// ===================== LISTAGEM / FILTRO =====================
 function renderAgenda() {
   _populateTemaSelect();
   renderCalendario();
   agBuscaClienteAtual = (document.getElementById('agBuscaCliente')?.value || '').toLowerCase();
+  const retiradaFiltro = document.getElementById('agFiltroRetirada')?.value || '';
   const hoje = _hoje();
   let items = [...db.agenda];
 
   if (agBuscaClienteAtual) items = items.filter(ag => ag.cliente.toLowerCase().includes(agBuscaClienteAtual));
+  if (retiradaFiltro) items = items.filter(ag => ag.dataRetirada === retiradaFiltro);
   if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
   else if (agendaFiltroAtual === 'pendentes') items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
   else if (agendaFiltroAtual === 'realizados') items = items.filter(ag => ag.sessoes.every(s => s.status === 'realizado'));
@@ -184,7 +133,7 @@ function renderAgenda() {
             <option value="personalizado" ${ag.statusCor==='personalizado'?'selected':''}>🟣 Personalizado</option>
             <option value="credito" ${ag.statusCor==='credito'?'selected':''}>🟠 Crédito</option>
           </select>
-          <button class="btn btn-edit" onclick="editarAgendamento('${ag.id}')">✏️</button>
+          <button class="btn btn-edit" onclick="abrirEditarAgenda('${ag.id}')">✏️</button>
           <button class="btn btn-edit" onclick="enviarWhatsappAgenda('${ag.id}')">💬</button>
           <button class="btn btn-danger" onclick="excluirAgendamento('${ag.id}')">✕</button>
         </div>
@@ -207,7 +156,91 @@ async function setStatusAgenda(id, cor) {
   await dbAtualizar('agenda', ag);
 }
 
-// ===================== "REALIZAR" — leva pra Atendimentos, NÃO salva sozinho =====================
+// ===================== MODAL DE EDIÇÃO (sem sair do lugar) =====================
+function abrirEditarAgenda(id) {
+  const ag = db.agenda.find(x => x.id === id);
+  if (!ag) return;
+  const temaOpcoes = '<option value="">Nenhum</option>' + db.temas.map(t => `<option value="${t.id}" ${ag.temaId===t.id?'selected':''}>${t.nome}</option>`).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'modal-editar-agenda';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:480px">
+      <div class="modal-header"><span>✏️ Editar Agendamento</span><button onclick="document.getElementById('modal-editar-agenda').remove()">✕</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label>Cliente</label><input id="edag-cliente" value="${ag.cliente}"></div>
+          <div class="form-group"><label>Telefone</label><input id="edag-telefone" value="${ag.telefone||''}" onkeyup="mascaraTel(this)"></div>
+          <div class="form-group"><label>Data</label><input type="date" id="edag-data" value="${ag.sessoes[0]?.data||''}"></div>
+          <div class="form-group"><label>Data de retirada</label><input type="date" id="edag-data-retirada" value="${ag.dataRetirada||''}"></div>
+          <div class="form-group"><label>Hora retirada</label><input type="time" id="edag-hora-retirada" value="${ag.horaRetirada||''}"></div>
+          <div class="form-group"><label>Sinal (R$)</label><input type="number" step="0.01" id="edag-sinal" value="${ag.sinal||0}"></div>
+          <div class="form-group"><label>Tema</label><select id="edag-tema">${temaOpcoes}</select></div>
+          <div class="form-group"><label>Status</label>
+            <select id="edag-status">
+              <option value="reservado" ${ag.statusCor==='reservado'?'selected':''}>🟢 Reservado</option>
+              <option value="alugado" ${ag.statusCor==='alugado'?'selected':''}>🔴 Alugado</option>
+              <option value="devolveu" ${ag.statusCor==='devolveu'?'selected':''}>⚫ Devolveu</option>
+              <option value="personalizado" ${ag.statusCor==='personalizado'?'selected':''}>🟣 Personalizado</option>
+              <option value="credito" ${ag.statusCor==='credito'?'selected':''}>🟠 Crédito</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Observações</label><textarea id="edag-obs">${ag.obs||''}</textarea></div>
+        <p style="font-size:11px;color:var(--text-light);margin:0.5rem 0">Festas e materiais não são editáveis aqui — para trocar, exclua e crie um novo agendamento.</p>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+          <button class="btn btn-primary btn-sm" onclick="salvarEdicaoAgenda('${id}')">✓ Salvar</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-editar-agenda').remove()">Cancelar</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function salvarEdicaoAgenda(id) {
+  const ag = db.agenda.find(x => x.id === id);
+  if (!ag) return;
+
+  ag.cliente = document.getElementById('edag-cliente').value.trim();
+  ag.telefone = document.getElementById('edag-telefone').value;
+  const novaData = document.getElementById('edag-data').value;
+  ag.sessoes[0].data = novaData;
+  ag.dataRetirada = document.getElementById('edag-data-retirada').value;
+  ag.horaRetirada = document.getElementById('edag-hora-retirada').value;
+  ag.temaId = document.getElementById('edag-tema').value || null;
+  ag.statusCor = document.getElementById('edag-status').value;
+  ag.obs = document.getElementById('edag-obs').value;
+
+  const novoSinal = parseFloat(document.getElementById('edag-sinal').value || 0);
+  if (novoSinal !== ag.sinal) {
+    if (ag.sinalAtendId) {
+      const sinalAtend = db.atendimentos.find(a => a.id === ag.sinalAtendId);
+      if (sinalAtend) {
+        sinalAtend.valor = novoSinal;
+        await dbAtualizar('atendimentos', sinalAtend);
+      }
+    } else if (novoSinal > 0) {
+      const sinalAtend = {
+        id: uid(), cliente: ag.cliente, data: ag.dataRetirada || novaData,
+        servicoIds: [...ag.servicoIds], materiais: {},
+        valor: novoSinal, pagto: 'pix',
+        obs: `Sinal recebido referente à festa de ${fmtDate(novaData)}.`,
+        statusCor: ag.statusCor
+      };
+      db.atendimentos.push(sinalAtend);
+      await dbInserir('atendimentos', sinalAtend);
+      ag.sinalAtendId = sinalAtend.id;
+    }
+    ag.sinal = novoSinal;
+  }
+
+  saveData(); renderAll();
+  await dbAtualizar('agenda', ag);
+  document.getElementById('modal-editar-agenda').remove();
+  showToast('Agendamento atualizado!');
+}
+
 function realizarSessao(agId, idx) {
   const ag = db.agenda.find(x => x.id === agId);
   if (!ag || !ag.sessoes[idx]) return;
