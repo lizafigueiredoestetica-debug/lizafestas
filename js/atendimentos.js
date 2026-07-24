@@ -94,7 +94,7 @@ function renderAtendimentos() {
     <tr class="data-row" onclick="toggleDetail('atend-${a.id}')">
       <td><span class="expand-icon" id="icon-atend-${a.id}">▶</span></td>
       <td>${fmtDate(a.data)}</td>
-      <td><strong>${a.cliente}</strong></td>
+      <td><strong>${a.cliente}</strong>${a.isSinal ? ' <span class="badge-pill" style="background:#FFF3E0;color:#E65100;font-size:9px">SINAL</span>' : ''}</td>
       <td>${festasNomes}</td>
       <td style="position:relative;cursor:pointer" onclick="event.stopPropagation();toggleStatusMenuAtend('${a.id}')">
         <span style="display:inline-flex;align-items:center;gap:6px">
