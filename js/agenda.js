@@ -30,7 +30,9 @@ async function salvarAgendamento() {
     sinal: parseFloat(sinal || 0),
     statusCor,
     obs: document.getElementById('ag-obs').value,
-    sinalAtendId: null
+    sinalAtendId: null,
+    concluido: false,
+    atendimentoId: null
   };
   db.agenda.push(novo);
 
@@ -46,7 +48,8 @@ async function salvarAgendamento() {
       servicoIds: [...novo.servicoIds], materiais: {},
       valor: novo.sinal, pagto: 'pix',
       obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
-      statusCor: novo.statusCor
+      statusCor: novo.statusCor,
+      agendaOrigemId: null
     };
     db.atendimentos.push(sinalAtend);
     await dbInserir('atendimentos', sinalAtend);
@@ -96,9 +99,14 @@ function renderAgenda() {
 
   if (agBuscaClienteAtual) items = items.filter(ag => ag.cliente.toLowerCase().includes(agBuscaClienteAtual));
   if (retiradaFiltro) items = items.filter(ag => ag.dataRetirada === retiradaFiltro);
-  if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
-  else if (agendaFiltroAtual === 'pendentes') items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
-  else if (agendaFiltroAtual === 'realizados') items = items.filter(ag => ag.sessoes.every(s => s.status === 'realizado'));
+
+  if (agendaFiltroAtual === 'realizados') {
+    items = items.filter(ag => ag.concluido);
+  } else {
+    items = items.filter(ag => !ag.concluido); // esconde concluídos de todos os outros filtros
+    if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
+    else if (agendaFiltroAtual === 'pendentes') items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
+  }
 
   items.sort((a, b) => (a.sessoes[0]?.data||'').localeCompare(b.sessoes[0]?.data||''));
 
@@ -114,15 +122,15 @@ function renderAgenda() {
       <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px">
         <span>${fmtDate(s.data)}</span>
         <span class="badge-pill ${s.status==='realizado'?'badge-ativo':'badge-inativo'}">${s.status==='realizado'?'Realizado':'Pendente'}</span>
-        ${s.status !== 'realizado' ? `<button class="btn btn-primary btn-sm" style="font-size:10px;padding:2px 8px" onclick="realizarSessao('${ag.id}',${idx})">✓ Realizar</button>` : ''}
+        ${!ag.concluido && s.status !== 'realizado' ? `<button class="btn btn-primary btn-sm" style="font-size:10px;padding:2px 8px" onclick="realizarSessao('${ag.id}',${idx})">✓ Realizar</button>` : ''}
         <button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 8px" onclick="marcarFalta('${ag.id}',${idx})">Faltou</button>
       </div>`).join('');
 
     return `
-    <div class="card" id="agcard-${ag.id}" style="border-left:4px solid ${cor.border};margin-bottom:1rem">
+    <div class="card" id="agcard-${ag.id}" style="border-left:4px solid ${cor.border};margin-bottom:1rem${ag.concluido?';opacity:0.75':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <strong style="font-size:15px">${ag.cliente}</strong>
+          <strong style="font-size:15px">${ag.cliente}</strong> ${ag.concluido ? '<span class="badge-pill badge-ativo" style="font-size:10px">Concluído</span>' : ''}
           <div style="font-size:12px;color:var(--text-light)">${srvNome}${tema ? ' · 🎨 '+tema.nome : ''}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -154,9 +162,18 @@ async function setStatusAgenda(id, cor) {
   ag.statusCor = cor;
   saveData(); renderAgenda(); renderStatusAgendaPanel();
   await dbAtualizar('agenda', ag);
+
+  // Sincroniza com o atendimento vinculado (se existir)
+  if (ag.atendimentoId) {
+    const at = db.atendimentos.find(x => x.id === ag.atendimentoId);
+    if (at) {
+      at.statusCor = cor;
+      saveData(); renderAtendimentos();
+      await dbAtualizar('atendimentos', at);
+    }
+  }
 }
 
-// ===================== MODAL DE EDIÇÃO (sem sair do lugar) =====================
 function abrirEditarAgenda(id) {
   const ag = db.agenda.find(x => x.id === id);
   if (!ag) return;
@@ -226,13 +243,20 @@ async function salvarEdicaoAgenda(id) {
         servicoIds: [...ag.servicoIds], materiais: {},
         valor: novoSinal, pagto: 'pix',
         obs: `Sinal recebido referente à festa de ${fmtDate(novaData)}.`,
-        statusCor: ag.statusCor
+        statusCor: ag.statusCor,
+        agendaOrigemId: null
       };
       db.atendimentos.push(sinalAtend);
       await dbInserir('atendimentos', sinalAtend);
       ag.sinalAtendId = sinalAtend.id;
     }
     ag.sinal = novoSinal;
+  }
+
+  // Sincroniza cor com o atendimento vinculado, se houver
+  if (ag.atendimentoId) {
+    const at = db.atendimentos.find(x => x.id === ag.atendimentoId);
+    if (at) { at.statusCor = ag.statusCor; await dbAtualizar('atendimentos', at); }
   }
 
   saveData(); renderAll();
