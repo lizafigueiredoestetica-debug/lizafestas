@@ -154,6 +154,7 @@
 
     <div class="agenda-filtros">
       <input id="agBuscaCliente" placeholder="Buscar cliente..." onkeyup="renderAgenda()">
+      <input type="date" id="agFiltroRetirada" onchange="renderAgenda()" title="Filtrar por data de retirada">
       <button class="agenda-btn active" onclick="setAgendaFiltro('tudo',this)">Tudo</button>
       <button class="agenda-btn" onclick="setAgendaFiltro('hoje',this)">Hoje</button>
       <button class="agenda-btn" onclick="setAgendaFiltro('pendentes',this)">Pendentes</button>
