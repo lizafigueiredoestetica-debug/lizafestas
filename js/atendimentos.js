@@ -34,17 +34,23 @@ async function registrarAtendimento() {
     });
    }
   
+  novo.agendaOrigemId = _agendaPendenteOrigem ? _agendaPendenteOrigem.agId : null;
+
   saveData(); renderAll(); limparFormAtendimento();
 
   await dbInserir('atendimentos', novo);
   for (const m of matsAtualizados) await dbAtualizar('materiais', m);
 
-  // Se veio da Agenda (via "Realizar"), remove o agendamento de origem só agora
   if (_agendaPendenteOrigem) {
     const agId = _agendaPendenteOrigem.agId;
-    db.agenda = db.agenda.filter(x => x.id !== agId);
-    saveData(); renderAll();
-    await dbExcluir('agenda', agId);
+    const ag = db.agenda.find(x => x.id === agId);
+    if (ag) {
+      ag.concluido = true;
+      ag.atendimentoId = novo.id;
+      if (ag.sessoes[_agendaPendenteOrigem.idx]) ag.sessoes[_agendaPendenteOrigem.idx].status = 'realizado';
+      saveData(); renderAll();
+      await dbAtualizar('agenda', ag);
+    }
     _agendaPendenteOrigem = null;
   }
 
