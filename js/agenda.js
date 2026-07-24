@@ -49,7 +49,7 @@ async function salvarAgendamento() {
       valor: novo.sinal, pagto: 'pix',
       obs: `Sinal recebido referente à festa de ${fmtDate(data)}.`,
       statusCor: novo.statusCor,
-      agendaOrigemId: null
+      agendaOrigemId: null,
       isSinal: true
     };
     db.atendimentos.push(sinalAtend);
@@ -104,7 +104,7 @@ function renderAgenda() {
   if (agendaFiltroAtual === 'realizados') {
     items = items.filter(ag => ag.concluido);
   } else {
-    items = items.filter(ag => !ag.concluido); // esconde concluídos de todos os outros filtros
+    items = items.filter(ag => !ag.concluido);
     if (agendaFiltroAtual === 'hoje') items = items.filter(ag => ag.sessoes.some(s => s.data === hoje));
     else if (agendaFiltroAtual === 'pendentes') items = items.filter(ag => ag.sessoes.some(s => s.status === 'pendente'));
   }
@@ -164,13 +164,14 @@ async function setStatusAgenda(id, cor) {
   saveData(); renderAgenda(); renderStatusAgendaPanel();
   await dbAtualizar('agenda', ag);
 
-  [ag.atendimentoId, ag.sinalAtendId].filter(Boolean).forEach(async (atId) => {
+  const idsParaSincronizar = [ag.atendimentoId, ag.sinalAtendId].filter(Boolean);
+  for (const atId of idsParaSincronizar) {
     const at = db.atendimentos.find(x => x.id === atId);
     if (at && at.statusCor !== cor) {
       at.statusCor = cor; saveData(); renderAtendimentos();
       await dbAtualizar('atendimentos', at);
     }
-  });
+  }
 }
 
 function abrirEditarAgenda(id) {
@@ -243,7 +244,8 @@ async function salvarEdicaoAgenda(id) {
         valor: novoSinal, pagto: 'pix',
         obs: `Sinal recebido referente à festa de ${fmtDate(novaData)}.`,
         statusCor: ag.statusCor,
-        agendaOrigemId: null
+        agendaOrigemId: null,
+        isSinal: true
       };
       db.atendimentos.push(sinalAtend);
       await dbInserir('atendimentos', sinalAtend);
@@ -252,10 +254,13 @@ async function salvarEdicaoAgenda(id) {
     ag.sinal = novoSinal;
   }
 
-  // Sincroniza cor com o atendimento vinculado, se houver
-  if (ag.atendimentoId) {
-    const at = db.atendimentos.find(x => x.id === ag.atendimentoId);
-    if (at) { at.statusCor = ag.statusCor; await dbAtualizar('atendimentos', at); }
+  const idsParaSincronizar = [ag.atendimentoId, ag.sinalAtendId].filter(Boolean);
+  for (const atId of idsParaSincronizar) {
+    const at = db.atendimentos.find(x => x.id === atId);
+    if (at && at.statusCor !== ag.statusCor) {
+      at.statusCor = ag.statusCor;
+      await dbAtualizar('atendimentos', at);
+    }
   }
 
   saveData(); renderAll();
