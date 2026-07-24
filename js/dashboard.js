@@ -309,6 +309,17 @@ async function setStatusAtend(id, statusCor) {
   a.statusCor = statusCor;
   saveData(); renderAtendimentos();
   await dbAtualizar('atendimentos', a);
+
+  // Sincroniza de volta com a Agenda, se este atendimento veio de um agendamento
+  if (a.agendaOrigemId) {
+    var ag = db.agenda.find(x => x.id === a.agendaOrigemId);
+    if (ag) {
+      ag.statusCor = statusCor;
+      saveData(); renderAll();
+      await dbAtualizar('agenda', ag);
+    }
+  }
+
   var menu = document.getElementById('statusmenu-atend-'+id);
   if (menu) menu.style.display='none';
 }
