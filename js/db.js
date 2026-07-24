@@ -108,8 +108,8 @@ function _toRowFesta(f) { return { id: f.id, nome: f.nome, duracao: f.duracao ? 
 function _fromRowMaterial(r) { return { id: r.id, nome: r.nome, fornecedor: r.fornecedor, custo: r.custo, qtd: r.qtd, min: r.minimo, unidade: r.unidade }; }
 function _toRowMaterial(m) { return { id: m.id, nome: m.nome, fornecedor: m.fornecedor, custo: m.custo, qtd: parseInt(m.qtd)||0, minimo: parseInt(m.min)||0, unidade: m.unidade }; }
 
-function _fromRowAtendimento(r) { return { id: r.id, cliente: r.cliente, data: r.data, servicoIds: r.festa_ids||[], materiais: r.materiais_usados||{}, valor: r.valor, pagto: r.pagto, obs: r.obs, statusCor: r.status_cor }; }
-function _toRowAtendimento(a) { return { id: a.id, cliente: a.cliente, data: a.data, festa_ids: a.servicoIds||[], materiais_usados: a.materiais||{}, valor: a.valor, pagto: a.pagto, obs: a.obs, status_cor: a.statusCor||null }; }
+function _fromRowAtendimento(r) { return { id: r.id, cliente: r.cliente, data: r.data, servicoIds: r.festa_ids||[], materiais: r.materiais_usados||{}, valor: r.valor, pagto: r.pagto, obs: r.obs, statusCor: r.status_cor, agendaOrigemId: r.agenda_origem_id||null }; }
+function _toRowAtendimento(a) { return { id: a.id, cliente: a.cliente, data: a.data, festa_ids: a.servicoIds||[], materiais_usados: a.materiais||{}, valor: a.valor, pagto: a.pagto, obs: a.obs, status_cor: a.statusCor||null, agenda_origem_id: a.agendaOrigemId||null }; }
 
 function _fromRowDespAdm(r) { return { id: r.id, desc: r.descricao, categoria: r.categoria, valor: r.valor, data: r.data }; }
 function _toRowDespAdm(d) { return { id: d.id, descricao: d.desc, categoria: d.categoria, valor: d.valor, data: d.data }; }
@@ -117,8 +117,8 @@ function _toRowDespAdm(d) { return { id: d.id, descricao: d.desc, categoria: d.c
 function _fromRowDespExtra(r) { return { id: r.id, desc: r.descricao, valor: r.valor, data: r.data }; }
 function _toRowDespExtra(d) { return { id: d.id, descricao: d.desc, valor: d.valor, data: d.data }; }
 
-function _fromRowAgenda(r) { return { id: r.id, cliente: r.cliente, telefone: r.telefone, servicoIds: r.festa_ids||[], temaId: r.tema_id||null, materiais: r.materiais_usados||{}, sessoes: r.sessoes||[], dataRetirada: r.data_retirada, horaRetirada: r.hora_retirada, sinal: r.sinal, statusCor: r.status_cor, obs: r.obs, sinalAtendId: r.sinal_atend_id||null }; }
-function _toRowAgenda(a) { return { id: a.id, cliente: a.cliente, telefone: a.telefone, festa_ids: a.servicoIds||[], tema_id: a.temaId||null, materiais_usados: a.materiais||{}, sessoes: a.sessoes||[], data_retirada: a.dataRetirada||null, hora_retirada: a.horaRetirada||null, sinal: a.sinal||0, status_cor: a.statusCor||null, obs: a.obs, sinal_atend_id: a.sinalAtendId||null }; }
+function _fromRowAgenda(r) { return { id: r.id, cliente: r.cliente, telefone: r.telefone, servicoIds: r.festa_ids||[], temaId: r.tema_id||null, materiais: r.materiais_usados||{}, sessoes: r.sessoes||[], dataRetirada: r.data_retirada, horaRetirada: r.hora_retirada, sinal: r.sinal, statusCor: r.status_cor, obs: r.obs, sinalAtendId: r.sinal_atend_id||null, concluido: !!r.concluido, atendimentoId: r.atendimento_id||null }; }
+function _toRowAgenda(a) { return { id: a.id, cliente: a.cliente, telefone: a.telefone, festa_ids: a.servicoIds||[], tema_id: a.temaId||null, materiais_usados: a.materiais||{}, sessoes: a.sessoes||[], data_retirada: a.dataRetirada||null, hora_retirada: a.horaRetirada||null, sinal: a.sinal||0, status_cor: a.statusCor||null, obs: a.obs, sinal_atend_id: a.sinalAtendId||null, concluido: !!a.concluido, atendimento_id: a.atendimentoId||null }; }
 
 // fotos: null = ainda não carregado do Supabase; [] = carregado e vazio; [...] = carregado com itens
 function _fromRowTema(r) { return { id: r.id, nome: r.nome, descricao: r.descricao, festaIds: r.festa_ids||[], fotos: (r.fotos !== undefined ? r.fotos : null) }; }
