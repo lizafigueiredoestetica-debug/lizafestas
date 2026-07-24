@@ -164,15 +164,13 @@ async function setStatusAgenda(id, cor) {
   saveData(); renderAgenda(); renderStatusAgendaPanel();
   await dbAtualizar('agenda', ag);
 
-  // Sincroniza com o atendimento vinculado (se existir)
-  if (ag.atendimentoId) {
-    const at = db.atendimentos.find(x => x.id === ag.atendimentoId);
-    if (at) {
-      at.statusCor = cor;
-      saveData(); renderAtendimentos();
+  [ag.atendimentoId, ag.sinalAtendId].filter(Boolean).forEach(async (atId) => {
+    const at = db.atendimentos.find(x => x.id === atId);
+    if (at && at.statusCor !== cor) {
+      at.statusCor = cor; saveData(); renderAtendimentos();
       await dbAtualizar('atendimentos', at);
     }
-  }
+  });
 }
 
 function abrirEditarAgenda(id) {
