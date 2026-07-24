@@ -310,13 +310,22 @@ async function setStatusAtend(id, statusCor) {
   saveData(); renderAtendimentos();
   await dbAtualizar('atendimentos', a);
 
-  // Sincroniza de volta com a Agenda, se este atendimento veio de um agendamento
-  if (a.agendaOrigemId) {
-    var ag = db.agenda.find(x => x.id === a.agendaOrigemId);
-    if (ag) {
-      ag.statusCor = statusCor;
-      saveData(); renderAll();
-      await dbAtualizar('agenda', ag);
+  // Acha o agendamento vinculado, seja pelo sinal ou pelo atendimento final
+  var ag = db.agenda.find(x => x.sinalAtendId === id || x.atendimentoId === id);
+  if (ag) {
+    ag.statusCor = statusCor;
+    saveData(); renderAll();
+    await dbAtualizar('agenda', ag);
+
+    // Propaga pro OUTRO atendimento do mesmo agendamento (sinal ↔ final)
+    var outroId = (ag.sinalAtendId === id) ? ag.atendimentoId : ag.sinalAtendId;
+    if (outroId) {
+      var outro = db.atendimentos.find(x => x.id === outroId);
+      if (outro && outro.statusCor !== statusCor) {
+        outro.statusCor = statusCor;
+        saveData(); renderAtendimentos();
+        await dbAtualizar('atendimentos', outro);
+      }
     }
   }
 
