@@ -158,7 +158,25 @@ async function salvarEditAtend(id) {
   await dbAtualizar('atendimentos', a);
   showToast('Atendimento atualizado!');
 }
-
+function editItem(prefix, id) {
+  const view = document.getElementById(prefix+'-view-'+id);
+  const edit = document.getElementById(prefix+'-edit-'+id);
+  if (view) view.style.display = 'none';
+  if (edit) edit.style.display = 'block';
+}
+function cancelEdit(prefix, id) {
+  const view = document.getElementById(prefix+'-view-'+id);
+  const edit = document.getElementById(prefix+'-edit-'+id);
+  if (edit) edit.style.display = 'none';
+  if (view) view.style.display = 'block';
+}
+async function excluir(colecao, id) {
+  if (!confirm('Tem certeza que deseja excluir este item?')) return;
+  db[colecao] = db[colecao].filter(x => x.id !== id);
+  saveData(); renderAll();
+  await dbExcluir(colecao, id);
+  showToast('Item excluído.');
+}
 // ===================== HELPERS GENÉRICOS =====================
 function editItem(prefix, id) {
   const view = document.getElementById(prefix+'-view-'+id);
