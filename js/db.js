@@ -102,8 +102,8 @@ async function loadData() {
   }
 }
 
-function _fromRowFesta(r) { return { id: r.id, nome: r.nome, duracao: r.duracao, preco: r.preco, status: r.status }; }
-function _toRowFesta(f) { return { id: f.id, nome: f.nome, duracao: f.duracao ? parseInt(f.duracao) : null, preco: f.preco, status: f.status }; }
+function _fromRowFesta(r) { return { id: r.id, nome: r.nome, descricao: r.descricao||'', preco: r.preco, status: r.status }; }
+function _toRowFesta(f) { return { id: f.id, nome: f.nome, descricao: f.descricao||'', preco: f.preco, status: f.status }; }
 
 function _fromRowMaterial(r) { return { id: r.id, nome: r.nome, fornecedor: r.fornecedor, custo: r.custo, qtd: r.qtd, min: r.minimo, unidade: r.unidade, grade: r.grade||'' }; }
 function _toRowMaterial(m) { return { id: m.id, nome: m.nome, fornecedor: m.fornecedor, custo: m.custo, qtd: parseInt(m.qtd)||0, minimo: parseInt(m.min)||0, unidade: m.unidade, grade: m.grade||'' }; }
