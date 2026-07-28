@@ -311,7 +311,12 @@
       <button class="btn btn-secondary" onclick="limparFormTema()">Limpar</button>
     </div>
 
-    <input id="filtTemaNome" placeholder="Buscar tema..." onkeyup="renderTemas()">
+    <div class="filtros-row">
+      <input id="filtTemaNome" placeholder="Buscar tema..." onkeyup="renderTemas()">
+      <select id="filtTemaFesta" onchange="renderTemas()">
+        <option value="">Todas as festas</option>
+      </select>
+    </div>
     <div id="temasLista" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem"></div>
   </section>
 
