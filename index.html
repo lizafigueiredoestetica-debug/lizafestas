@@ -249,6 +249,7 @@
         <div class="form-group"><label>Unidade</label>
           <select id="mat-unidade"><option value="un">un</option><option value="ml">ml</option><option value="g">g</option><option value="L">L</option><option value="kg">kg</option><option value="cx">cx</option></select>
         </div>
+        <div class="form-group"><label>Grade</label><input id="mat-grade" placeholder="Ex: P, M, G"></div>
       </div>
       <button class="btn btn-primary" onclick="salvarMaterial()">+ Cadastrar Material</button>
       <button class="btn btn-secondary" onclick="limparFormMat()">Limpar</button>
@@ -256,7 +257,7 @@
     <input id="filtMatNome" placeholder="Buscar material..." onkeyup="renderMateriais()">
     <div class="table-scroll">
     <table class="data-table">
-      <thead><tr><th></th><th>Nome</th><th>Fornecedor</th><th>Custo</th><th>Estoque</th><th>Mín.</th><th>Situação</th><th></th></tr></thead>
+      <thead><tr><th></th><th>Nome</th><th>Fornecedor</th><th>Custo</th><th>Estoque</th><th>Grade</th><th>Mín.</th><th>Na rua</th><th>Situação</th><th></th></tr></thead>
       <tbody id="tbodyMat"></tbody>
     </table>
     </div>
