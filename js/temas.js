@@ -85,10 +85,21 @@ async function salvarTema() {
   showToast('Tema cadastrado!');
 }
 
+function _populateTemaFestaFiltro() {
+  var sel = document.getElementById('filtTemaFesta');
+  if (!sel) return;
+  var atual = sel.value;
+  sel.innerHTML = '<option value="">Todas as festas</option>' + db.festas.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+  sel.value = atual;
+}
+
 function renderTemas() {
+  _populateTemaFestaFiltro();
   const busca = (document.getElementById('filtTemaNome')?.value || '').toLowerCase();
+  const festaFiltro = document.getElementById('filtTemaFesta')?.value || '';
   let items = [...db.temas];
   if (busca) items = items.filter(t => t.nome.toLowerCase().includes(busca));
+  if (festaFiltro) items = items.filter(t => (t.festaIds||[]).includes(festaFiltro));
 
   const cont = document.getElementById('temasLista');
   if (!cont) return;
@@ -103,6 +114,7 @@ function renderTemas() {
       <div style="font-size:11px;color:var(--text-light);margin-bottom:8px">🎉 ${festasNomes}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm" onclick="verFotosTema('${t.id}')">🖼️ Ver Fotos</button>
+        <button class="btn btn-secondary btn-sm" onclick="abrirAdicionarFotosTema('${t.id}')">📷 + Fotos</button>
         <button class="btn btn-secondary btn-sm" onclick="abrirEnvioWhatsappTema('${t.id}')">💬 Enviar</button>
         <button class="btn btn-danger btn-sm" onclick="excluirTema('${t.id}')">✕</button>
       </div>
@@ -147,6 +159,32 @@ async function verFotosTema(temaId) {
   document.body.appendChild(modal);
 }
 
+// ===================== INCLUIR FOTOS EM TEMA JÁ CADASTRADO =====================
+async function abrirAdicionarFotosTema(temaId) {
+  showToast('Carregando fotos...');
+  const t = await _garantirFotosTema(temaId);
+  if (!t) return;
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.multiple = true;
+  input.onchange = async function(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    showToast('Enviando fotos...');
+    const novasFotos = await Promise.all(files.map(file => new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve({ id: uid(), nome: file.name, dataUrl: e.target.result });
+      reader.readAsDataURL(file);
+    })));
+    t.fotos = [...(t.fotos||[]), ...novasFotos];
+    await dbAtualizar('temas', t);
+    showToast('Fotos adicionadas ao tema!');
+  };
+  input.click();
+}
+
 // ===================== ENVIO WHATSAPP =====================
 async function abrirEnvioWhatsappTema(temaId) {
   showToast('Carregando fotos...');
@@ -155,7 +193,7 @@ async function abrirEnvioWhatsappTema(temaId) {
 
   const opcoes = t.fotos.map(f => `
     <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #f0e8ea;font-size:13px;cursor:pointer">
-      <input type="radio" name="fotoWhatsTema" value="${f.id}">
+      <input type="checkbox" name="fotoWhatsTema" value="${f.id}">
       <img src="${f.dataUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:6px">
       ${f.nome}
     </label>`).join('');
@@ -167,7 +205,11 @@ async function abrirEnvioWhatsappTema(temaId) {
     <div class="modal-box" style="max-width:400px">
       <div class="modal-header"><span>💬 Enviar tema "${t.nome}"</span><button onclick="document.getElementById('modal-whats-tema').remove()">✕</button></div>
       <div class="modal-body">
-        <p style="font-size:12px;color:var(--text-light);margin-bottom:8px">Escolha qual foto enviar:</p>
+        <div class="form-group" style="margin-bottom:0.75rem">
+          <label>WhatsApp do cliente (opcional)</label>
+          <input type="tel" id="whats-tema-numero" placeholder="(00) 00000-0000" onkeyup="mascaraTel(this)">
+        </div>
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:8px">Escolha quais fotos enviar:</p>
         ${opcoes}
         <div style="margin-top:1rem"><button class="btn btn-primary btn-sm" onclick="_confirmarEnvioWhatsappTema('${t.id}')">✓ Continuar</button></div>
       </div>
@@ -177,30 +219,44 @@ async function abrirEnvioWhatsappTema(temaId) {
 
 async function _confirmarEnvioWhatsappTema(temaId) {
   const t = db.temas.find(x => x.id === temaId);
-  const sel = document.querySelector('input[name="fotoWhatsTema"]:checked');
-  if (!sel) { showToast('Selecione uma foto!'); return; }
-  const foto = t.fotos.find(f => f.id === sel.value);
+  const sels = Array.from(document.querySelectorAll('input[name="fotoWhatsTema"]:checked'));
+  if (!sels.length) { showToast('Selecione ao menos uma foto!'); return; }
+  const fotos = sels.map(sel => t.fotos.find(f => f.id === sel.value)).filter(Boolean);
+  const numero = (document.getElementById('whats-tema-numero')||{value:''}).value;
   document.getElementById('modal-whats-tema').remove();
 
   const festasNomes = (t.festaIds||[]).map(id => { const f = db.festas.find(x=>x.id===id); return f?f.nome:null; }).filter(Boolean).join(', ');
   const texto = `Olá! 🎉 Segue o tema "${t.nome}"${t.descricao ? ' — '+t.descricao : ''}${festasNomes ? '\n\nInclui: '+festasNomes : ''}`;
 
+  const urlWhats = (function() {
+    const tel = _limparTelefone(numero);
+    if (!tel) return 'https://wa.me/?text=' + encodeURIComponent(texto);
+    const numComPais = tel.length <= 11 ? '55'+tel : tel;
+    return 'https://wa.me/' + numComPais + '?text=' + encodeURIComponent(texto);
+  })();
+
   try {
-    const resp = await fetch(foto.dataUrl);
-    const blob = await resp.blob();
-    const file = new File([blob], foto.nome || 'tema.jpg', { type: blob.type });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], text: texto, title: t.nome });
+    const files = await Promise.all(fotos.map(async foto => {
+      const resp = await fetch(foto.dataUrl);
+      const blob = await resp.blob();
+      return new File([blob], foto.nome || 'tema.jpg', { type: blob.type });
+    }));
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ files, text: texto, title: t.nome });
       return;
     }
   } catch(e) { /* segue pro fallback abaixo */ }
 
-  const a = document.createElement('a');
-  a.href = foto.dataUrl;
-  a.download = foto.nome || 'tema.jpg';
-  a.click();
-  showToast('Foto baixada — anexe ela manualmente na conversa do WhatsApp que vai abrir.');
+  fotos.forEach((foto, i) => {
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = foto.dataUrl;
+      a.download = foto.nome || ('tema-'+(i+1)+'.jpg');
+      a.click();
+    }, i * 400);
+  });
+  showToast(fotos.length > 1 ? 'Fotos baixadas — anexe elas manualmente na conversa do WhatsApp que vai abrir.' : 'Foto baixada — anexe ela manualmente na conversa do WhatsApp que vai abrir.');
   setTimeout(() => {
-    window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
-  }, 600);
+    window.open(urlWhats, '_blank');
+  }, fotos.length * 400 + 600);
 }
