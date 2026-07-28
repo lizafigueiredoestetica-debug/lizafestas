@@ -145,6 +145,12 @@ async function verFotosTema(temaId) {
   showToast('Carregando fotos...');
   const t = await _garantirFotosTema(temaId);
   if (!t || !t.fotos.length) { showToast('Este tema não tem fotos anexadas.'); return; }
+  _renderModalFotosTema(t);
+}
+
+function _renderModalFotosTema(t) {
+  const existente = document.getElementById('modal-fotos-tema');
+  if (existente) existente.remove();
 
   const modal = document.createElement('div');
   modal.id = 'modal-fotos-tema';
@@ -153,10 +159,25 @@ async function verFotosTema(temaId) {
     <div class="modal-box" style="max-width:600px">
       <div class="modal-header"><span>🖼️ Fotos — ${t.nome}</span><button onclick="document.getElementById('modal-fotos-tema').remove()">✕</button></div>
       <div class="modal-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
-        ${t.fotos.map(f => `<img src="${f.dataUrl}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`).join('')}
+        ${t.fotos.map(f => `
+          <div style="position:relative">
+            <img src="${f.dataUrl}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+            <button onclick="excluirFotoTema('${t.id}','${f.id}')" title="Excluir esta foto" style="position:absolute;top:6px;right:6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer">✕</button>
+          </div>`).join('')}
       </div>
     </div>`;
   document.body.appendChild(modal);
+}
+
+async function excluirFotoTema(temaId, fotoId) {
+  if (!confirm('Excluir esta foto do tema?')) return;
+  const t = db.temas.find(x => x.id === temaId);
+  if (!t) return;
+  t.fotos = (t.fotos||[]).filter(f => f.id !== fotoId);
+  await dbAtualizar('temas', t);
+  showToast('Foto excluída.');
+  if (!t.fotos.length) { document.getElementById('modal-fotos-tema')?.remove(); return; }
+  _renderModalFotosTema(t);
 }
 
 // ===================== INCLUIR FOTOS EM TEMA JÁ CADASTRADO =====================
