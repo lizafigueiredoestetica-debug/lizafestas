@@ -11,7 +11,14 @@
 .cal-event.atrasado { border: 1px solid var(--danger); }
 .cal-more { font-size: 10px; color: var(--rose-dark); cursor: pointer; padding: 2px 4px; }
 
+@media (max-width: 640px) {
+  .cal-day { min-height: 60px; padding: 2px; }
+  .cal-event { font-size: 9px; }
+  .cal-dow { font-size: 9px; padding: 4px 2px; }
+}
+
 /* ===== SEMANA ===== */
+.cal-week-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cal-week-grid { display: grid; grid-template-columns: 50px repeat(7, minmax(90px,1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; min-width: 700px; }
 .cal-week-header { background: var(--cream); padding: 6px; text-align: center; }
 .cal-week-header.hoje-col { background: var(--rose-light); }
