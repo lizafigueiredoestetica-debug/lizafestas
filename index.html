@@ -198,10 +198,12 @@
         <option value="cartao_debito">Débito</option><option value="cartao_credito">Crédito</option>
       </select>
     </div>
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th></th><th>Data</th><th>Cliente</th><th>Festa</th><th>Status</th><th>Pagamento</th><th>Valor</th><th></th></tr></thead>
       <tbody id="tbodyAtend"></tbody>
     </table>
+    </div>
   </section>
 
   <!-- ===================== FESTAS ===================== -->
@@ -225,10 +227,12 @@
         <option value="">Todos status</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option>
       </select>
     </div>
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th></th><th>Nome</th><th>Duração</th><th>Preço</th><th>Status</th><th></th></tr></thead>
       <tbody id="tbodyServ"></tbody>
     </table>
+    </div>
   </section>
 
   <!-- ===================== MATERIAIS ===================== -->
@@ -249,10 +253,12 @@
       <button class="btn btn-secondary" onclick="limparFormMat()">Limpar</button>
     </div>
     <input id="filtMatNome" placeholder="Buscar material..." onkeyup="renderMateriais()">
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th></th><th>Nome</th><th>Fornecedor</th><th>Custo</th><th>Estoque</th><th>Mín.</th><th>Situação</th><th></th></tr></thead>
       <tbody id="tbodyMat"></tbody>
     </table>
+    </div>
   </section>
 
   <!-- ===================== DESPESAS ADMINISTRATIVAS ===================== -->
@@ -267,10 +273,12 @@
       </div>
       <button class="btn btn-primary" onclick="salvarDespAdm()">+ Registrar</button>
     </div>
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th></th></tr></thead>
       <tbody id="tbodyDespAdm"></tbody>
     </table>
+    </div>
   </section>
 
   <!-- ===================== DESPESAS EXTRAS ===================== -->
@@ -284,10 +292,12 @@
       </div>
       <button class="btn btn-primary" onclick="salvarDespExtra()">+ Registrar</button>
     </div>
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
       <tbody id="tbodyDespExtra"></tbody>
     </table>
+    </div>
   </section>
 
   <!-- ===================== TEMAS ===================== -->
