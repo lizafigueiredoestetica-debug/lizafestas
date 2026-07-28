@@ -235,21 +235,17 @@ async function _confirmarEnvioWhatsappTema(temaId) {
     return 'https://wa.me/' + numComPais + '?text=' + encodeURIComponent(texto);
   })();
 
-  const numeroInformado = !!_limparTelefone(numero);
-
-  if (!numeroInformado) {
-    try {
-      const files = await Promise.all(fotos.map(async foto => {
-        const resp = await fetch(foto.dataUrl);
-        const blob = await resp.blob();
-        return new File([blob], foto.nome || 'tema.jpg', { type: blob.type });
-      }));
-      if (navigator.canShare && navigator.canShare({ files })) {
-        await navigator.share({ files, text: texto, title: t.nome });
-        return;
-      }
-    } catch(e) { /* segue pro fallback abaixo */ }
-  }
+  try {
+    const files = await Promise.all(fotos.map(async foto => {
+      const resp = await fetch(foto.dataUrl);
+      const blob = await resp.blob();
+      return new File([blob], foto.nome || 'tema.jpg', { type: blob.type });
+    }));
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ files, text: texto, title: t.nome });
+      return;
+    }
+  } catch(e) { /* segue pro fallback abaixo */ }
 
   fotos.forEach((foto, i) => {
     setTimeout(() => {
