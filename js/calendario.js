@@ -134,7 +134,7 @@ function _renderCalSemana(grid, titulo) {
   var dows = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
   var horas = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
 
-  var html = '<div class="cal-week-grid" style="overflow-x:auto">';
+  var html = '<div class="cal-week-scroll"><div class="cal-week-grid">';
   html += '<div class="cal-week-header"></div>';
   diasSem.forEach(function(d, i) {
     var isHoje = d.str === hoje;
@@ -195,7 +195,7 @@ function _renderCalSemana(grid, titulo) {
     html += '</div>';
   });
 
-  html += '</div>';
+  html += '</div></div>';
   grid.innerHTML = html;
 }
 
