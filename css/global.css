@@ -91,6 +91,7 @@ textarea { resize: vertical; min-height: 60px; }
 .filtros-row input, .filtros-row select { flex: 1; min-width: 140px; }
 
 /* ===== TABLES ===== */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; }
 .data-table th {
   text-align: left;
@@ -153,3 +154,18 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .modal-header button { background: none; border: none; color: #FAF0F2; font-size: 20px; cursor: pointer; }
 .modal-body { padding: 1.5rem; }
+
+/* ===== RESPONSIVO — TABLET/CELULAR ===== */
+@media (max-width: 640px) {
+  body { font-size: 13px; }
+  h2 { font-size: 21px; }
+  .form-card, .panel-header, .modal-body, .cal-modal-body { padding: 1rem; }
+  .data-table { min-width: 560px; } /* força rolagem em vez de espremer colunas */
+  .modal-box, .cal-modal-box { max-width: 100%; }
+  .btn { padding: 0.6rem 0.9rem; font-size: 12px; }
+  .form-grid { grid-template-columns: 1fr; } /* 1 campo por linha no celular */
+  input, select, textarea { font-size: 16px; } /* evita zoom automático do iOS Safari ao focar */
+}
+@media (min-width: 641px) and (max-width: 900px) {
+  .form-grid { grid-template-columns: repeat(2, 1fr); } /* 2 colunas no tablet */
+}
