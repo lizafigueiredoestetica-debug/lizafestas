@@ -246,7 +246,11 @@ async function _confirmarEnvioWhatsappTema(temaId) {
   const numero = (document.getElementById('whats-tema-numero')||{value:''}).value;
   document.getElementById('modal-whats-tema').remove();
 
-  const festasNomes = (t.festaIds||[]).map(id => { const f = db.festas.find(x=>x.id===id); return f?f.nome:null; }).filter(Boolean).join(', ');
+  const festasNomes = (t.festaIds||[]).map(id => {
+    const f = db.festas.find(x=>x.id===id);
+    if (!f) return null;
+    return f.descricao ? `${f.nome} — ${f.descricao}` : f.nome;
+  }).filter(Boolean).join(', ');
   const texto = `Olá! 🎉 Segue o tema "${t.nome}"${t.descricao ? ' — '+t.descricao : ''}${festasNomes ? '\n\nInclui: '+festasNomes : ''}`;
 
   const urlWhats = (function() {
