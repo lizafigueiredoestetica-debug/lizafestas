@@ -105,8 +105,8 @@ async function loadData() {
 function _fromRowFesta(r) { return { id: r.id, nome: r.nome, duracao: r.duracao, preco: r.preco, status: r.status }; }
 function _toRowFesta(f) { return { id: f.id, nome: f.nome, duracao: f.duracao ? parseInt(f.duracao) : null, preco: f.preco, status: f.status }; }
 
-function _fromRowMaterial(r) { return { id: r.id, nome: r.nome, fornecedor: r.fornecedor, custo: r.custo, qtd: r.qtd, min: r.minimo, unidade: r.unidade }; }
-function _toRowMaterial(m) { return { id: m.id, nome: m.nome, fornecedor: m.fornecedor, custo: m.custo, qtd: parseInt(m.qtd)||0, minimo: parseInt(m.min)||0, unidade: m.unidade }; }
+function _fromRowMaterial(r) { return { id: r.id, nome: r.nome, fornecedor: r.fornecedor, custo: r.custo, qtd: r.qtd, min: r.minimo, unidade: r.unidade, grade: r.grade||'' }; }
+function _toRowMaterial(m) { return { id: m.id, nome: m.nome, fornecedor: m.fornecedor, custo: m.custo, qtd: parseInt(m.qtd)||0, minimo: parseInt(m.min)||0, unidade: m.unidade, grade: m.grade||'' }; }
 
 function _fromRowAtendimento(r) { return { id: r.id, cliente: r.cliente, data: r.data, servicoIds: r.festa_ids||[], materiais: r.materiais_usados||{}, valor: r.valor, pagto: r.pagto, obs: r.obs, statusCor: r.status_cor, agendaOrigemId: r.agenda_origem_id||null, isSinal: !!r.is_sinal }; }
 function _toRowAtendimento(a) { return { id: a.id, cliente: a.cliente, data: a.data, festa_ids: a.servicoIds||[], materiais_usados: a.materiais||{}, valor: a.valor, pagto: a.pagto, obs: a.obs, status_cor: a.statusCor||null, agenda_origem_id: a.agendaOrigemId||null, is_sinal: !!a.isSinal }; }
