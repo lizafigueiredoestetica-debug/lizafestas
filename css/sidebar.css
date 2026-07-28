@@ -47,14 +47,21 @@
 .btn-toggle-sidebar { background: none; border: none; font-size: 18px; cursor: pointer; }
 
 @media (max-width: 768px) {
-  .app-sidebar {
+  .app-sidebar, .app-sidebar.mini {
     transform: translateX(-100%);
     transition: transform .25s ease;
     width: 240px;
   }
-  .app-sidebar.drawer-aberto {
+  .app-sidebar.drawer-aberto, .app-sidebar.mini.drawer-aberto {
     transform: translateX(0);
   }
+  /* Ignora o "modo mini" do desktop dentro do drawer — sempre mostra o menu completo */
+  .app-sidebar.mini .sidebar-title, .app-sidebar.mini .sidebar-subtitle,
+  .app-sidebar.mini .nav-tab span:not(.nav-badge), .app-sidebar.mini .nav-group-label,
+  .app-sidebar.mini .nav-tab {
+    font-size: inherit;
+  }
+  .app-sidebar.mini .nav-tab { text-align: left; }
   .btn-hamburger { display: block; }
   .btn-toggle-sidebar { display: none; }
   .app-content, .app-content.mini { margin-left: 0; padding: 1rem; }
