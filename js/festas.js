@@ -5,17 +5,17 @@
 
 async function salvarFesta() {
   const nome = document.getElementById('serv-nome').value.trim();
-  const dur = document.getElementById('serv-duracao').value;
+  const desc = document.getElementById('serv-descricao').value;
   const preco = document.getElementById('serv-preco').value;
   if (!nome||!preco) { showToast('Preencha nome e preço!'); return; }
-  const nova = { id: uid(), nome, duracao: dur, preco: parseFloat(preco), status: document.getElementById('serv-status').value };
+  const nova = { id: uid(), nome, descricao: desc, preco: parseFloat(preco), status: document.getElementById('serv-status').value };
   db.festas.push(nova);
   saveData(); renderAll(); limparFormFesta();
   await dbInserir('festas', nova);
   showToast('Festa cadastrada!');
 }
 function limparFormFesta() {
-  ['serv-nome','serv-duracao','serv-preco'].forEach(id=>document.getElementById(id).value='');
+  ['serv-nome','serv-descricao','serv-preco'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('serv-status').value='ativo';
 }
 function renderFestas() {
@@ -30,7 +30,7 @@ function renderFestas() {
     <tr class="data-row" onclick="toggleDetail('serv-${s.id}')">
       <td><span class="expand-icon" id="icon-serv-${s.id}">▶</span></td>
       <td><strong>${s.nome}</strong></td>
-      <td>${s.duracao?s.duracao+' min':'—'}</td>
+      <td>${s.descricao||'—'}</td>
       <td>${fmtMoney(s.preco)}</td>
       <td><span class="badge-pill ${s.status==='ativo'?'badge-ativo':'badge-inativo'}">${s.status}</span></td>
       <td style="display:flex;gap:4px">
@@ -43,7 +43,7 @@ function renderFestas() {
         <div id="serv-view-${s.id}">
           <div class="detail-box">
             <div class="detail-field"><label>Nome</label><span>${s.nome}</span></div>
-            <div class="detail-field"><label>Duração</label><span>${s.duracao?s.duracao+' min':'—'}</span></div>
+            <div class="detail-field"><label>Descrição</label><span>${s.descricao||'—'}</span></div>
             <div class="detail-field"><label>Preço</label><span>${fmtMoney(s.preco)}</span></div>
             <div class="detail-field"><label>Status</label><span>${s.status}</span></div>
           </div>
@@ -52,7 +52,7 @@ function renderFestas() {
           <div class="edit-form-row">
             <div class="form-grid">
               <div class="form-group"><label>Nome</label><input type="text" id="eserv-nome-${s.id}" value="${s.nome}"></div>
-              <div class="form-group"><label>Duração (min)</label><input type="number" id="eserv-dur-${s.id}" value="${s.duracao||''}"></div>
+              <div class="form-group"><label>Descrição</label><input type="text" id="eserv-desc-${s.id}" value="${s.descricao||''}"></div>
               <div class="form-group"><label>Preço (R$)</label><input type="number" id="eserv-preco-${s.id}" value="${s.preco}" step="0.01"></div>
               <div class="form-group"><label>Status</label>
                 <select id="eserv-status-${s.id}">
@@ -74,7 +74,7 @@ async function salvarEditFesta(id) {
   const s = db.festas.find(x=>x.id===id);
   if (!s) return;
   s.nome = document.getElementById('eserv-nome-'+id).value.trim();
-  s.duracao = document.getElementById('eserv-dur-'+id).value;
+  s.descricao = document.getElementById('eserv-desc-'+id).value;
   s.preco = parseFloat(document.getElementById('eserv-preco-'+id).value);
   s.status = document.getElementById('eserv-status-'+id).value;
   saveData(); renderAll();
