@@ -116,6 +116,7 @@ function renderTemas() {
         <button class="btn btn-secondary btn-sm" onclick="verFotosTema('${t.id}')">🖼️ Ver Fotos</button>
         <button class="btn btn-secondary btn-sm" onclick="abrirAdicionarFotosTema('${t.id}')">📷 + Fotos</button>
         <button class="btn btn-secondary btn-sm" onclick="abrirEnvioWhatsappTema('${t.id}')">💬 Enviar</button>
+        <button class="btn btn-edit btn-sm" onclick="abrirEditarTema('${t.id}')">✏️ Editar</button>
         <button class="btn btn-danger btn-sm" onclick="excluirTema('${t.id}')">✕</button>
       </div>
     </div>`;
@@ -128,6 +129,77 @@ async function excluirTema(id) {
   saveData(); renderAll();
   await dbExcluir('temas', id);
   showToast('Tema excluído.');
+}
+
+// ===================== EDITAR TEMA (nome, descrição, festas vinculadas) =====================
+let _temaEditandoId = null;
+let _temaEditFestaIdsSelecionadas = [];
+
+function abrirEditarTema(id) {
+  const t = db.temas.find(x => x.id === id);
+  if (!t) return;
+  _temaEditandoId = id;
+  _temaEditFestaIdsSelecionadas = [...(t.festaIds||[])];
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-editar-tema';
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:480px">
+      <div class="modal-header"><span>✏️ Editar tema</span><button onclick="document.getElementById('modal-editar-tema').remove()">✕</button></div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:0.75rem"><label>Nome do tema</label><input id="edtema-nome" value="${t.nome}"></div>
+        <div class="form-group" style="margin-bottom:0.75rem"><label>Descrição</label><input id="edtema-descricao" value="${t.descricao||''}"></div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label>Festas incluídas</label>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="_abrirSeletorFestasTemaEdit()">🎉 Selecionar festas (<span id="edTemaFestasCount">${_temaEditFestaIdsSelecionadas.length}</span>)</button>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn btn-primary btn-sm" onclick="salvarEdicaoTema()">✓ Salvar</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-editar-tema').remove()">Cancelar</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function _abrirSeletorFestasTemaEdit() {
+  const opcoes = db.festas.map(f => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #f0e8ea;font-size:13px;cursor:pointer">
+      <input type="checkbox" value="${f.id}" ${_temaEditFestaIdsSelecionadas.includes(f.id)?'checked':''} onchange="_toggleFestaTemaEditTmp('${f.id}', this.checked)">
+      ${f.nome}
+    </label>`).join('') || '<p style="color:var(--text-light);font-size:13px;padding:1rem 0">Nenhuma festa cadastrada ainda.</p>';
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-festas-tema-edit';
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:420px">
+      <div class="modal-header"><span>🎉 Selecionar festas</span><button onclick="document.getElementById('modal-festas-tema-edit').remove()">✕</button></div>
+      <div class="modal-body">${opcoes}
+        <div style="margin-top:1rem"><button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-festas-tema-edit').remove();document.getElementById('edTemaFestasCount').textContent=_temaEditFestaIdsSelecionadas.length">✓ Confirmar</button></div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function _toggleFestaTemaEditTmp(id, checked) {
+  if (checked) { if (!_temaEditFestaIdsSelecionadas.includes(id)) _temaEditFestaIdsSelecionadas.push(id); }
+  else { _temaEditFestaIdsSelecionadas = _temaEditFestaIdsSelecionadas.filter(x => x !== id); }
+}
+
+async function salvarEdicaoTema() {
+  const t = db.temas.find(x => x.id === _temaEditandoId);
+  if (!t) return;
+  const nome = document.getElementById('edtema-nome').value.trim();
+  if (!nome) { showToast('Preencha o nome do tema!'); return; }
+  await _garantirFotosTema(t.id); // evita mandar fotos:[] pro Supabase se elas ainda não tinham sido carregadas
+  t.nome = nome;
+  t.descricao = document.getElementById('edtema-descricao').value;
+  t.festaIds = [..._temaEditFestaIdsSelecionadas];
+  saveData(); renderAll();
+  await dbAtualizar('temas', t);
+  document.getElementById('modal-editar-tema').remove();
+  showToast('Tema atualizado!');
 }
 
 // ===================== CARREGAMENTO SOB DEMANDA DAS FOTOS =====================
