@@ -88,7 +88,13 @@ async function loadData() {
     db.agenda = agenda.map(_fromRowAgenda);
     db.temas = temas.map(_fromRowTema);
 
-    localStorage.setItem('lizafestas_db', JSON.stringify(db));
+    // Fotos de temas não vão pro cache local (base64 é pesado — só localStorage.setItem já quebra com dezenas de fotos).
+    // Elas continuam sendo buscadas sob demanda do Supabase (ver supaBuscarFotosTema).
+    try {
+      localStorage.setItem('lizafestas_db', JSON.stringify(_dbParaCache()));
+    } catch(cacheErr) {
+      addLog('WARN', '⚠️ Cache local não pôde ser salvo (armazenamento cheio) — dados seguem sincronizados no Supabase normalmente.');
+    }
     var now = new Date().toLocaleString('pt-BR');
     localStorage.setItem('lizafestas_lastsync', now);
     _atualizarStatusSync('ok', now);
@@ -126,11 +132,22 @@ function _toRowTema(t) { return { id: t.id, nome: t.nome, descricao: t.descricao
 
 var _TO_ROW = { festas:_toRowFesta, materiais:_toRowMaterial, atendimentos:_toRowAtendimento, despAdm:_toRowDespAdm, despExtra:_toRowDespExtra, agenda:_toRowAgenda, temas:_toRowTema };
 
+// Cópia do db pra gravar no localStorage sem as fotos dos temas (base64 pesado — não cabe no cache)
+function _dbParaCache() {
+  return Object.assign({}, db, {
+    temas: (db.temas||[]).map(function(t) { return Object.assign({}, t, { fotos: null }); })
+  });
+}
+
 function saveData() {
-  localStorage.setItem('lizafestas_db', JSON.stringify(db));
-  var now = new Date().toLocaleString('pt-BR');
-  localStorage.setItem('lizafestas_lastsave', now);
-  addLog('INFO', '💾 Dados salvos localmente — ' + now);
+  try {
+    localStorage.setItem('lizafestas_db', JSON.stringify(_dbParaCache()));
+    var now = new Date().toLocaleString('pt-BR');
+    localStorage.setItem('lizafestas_lastsave', now);
+    addLog('INFO', '💾 Dados salvos localmente — ' + now);
+  } catch(e) {
+    addLog('WARN', '⚠️ Cache local não pôde ser salvo (armazenamento cheio) — dados seguem sincronizados no Supabase normalmente.');
+  }
 }
 
 async function dbInserir(colecao, obj) {
